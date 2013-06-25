@@ -35,11 +35,19 @@ function EventEmitter() {
 EventEmitter.prototype.addListener = function (event, listener) {
   var listener_list;
   this.emit("newListener", event, listener);
-  this._events[event] = this._events[event] || [];
   listener_list = this._events[event];
-  listener_list.push(listener);
+  if (listener_list === undefined) {
+    this._events[event] = listener;
+    listener_list = listener;
+  } else if (typeof listener_list === "function") {
+    this._events[event] = [listener_list, listener];
+  } else {
+    listener_list.push(listener);
+  }
   if (this._maxListeners > 0 &&
-      listener_list.length > this._maxListeners &&
+      ((typeof listener_list === "function" && 1 > this._maxListeners) ||
+       (typeof listener_list !== "function" &&
+        listener_list.length > this._maxListeners)) &&
       listener_list.warned !== true) {
     console.warn("warning: possible EventEmitter memory leak detected. " +
                  listener_list.length + " listeners added. " +
@@ -87,15 +95,24 @@ EventEmitter.prototype.removeListener = function (event, listener) {
   var listener_list, i;
   if (this._events[event]) {
     listener_list = this._events[event];
-    for (i = 0; i < listener_list.length; i += 1) {
-      if (listener_list[i] === listener) {
-        listener_list.splice(i, 1);
-        this.emit("removeListener", event, listener);
-        break;
+    if (typeof listener_list === "function") {
+      if (listener_list === listener) {
+        delete this._events[event];
       }
-    }
-    if (listener_list.length === 0) {
-      this._events[event] = undefined;
+    } else {
+      for (i = 0; i < listener_list.length; i += 1) {
+        if (listener_list[i] === listener) {
+          listener_list.splice(i, 1);
+          this.emit("removeListener", event, listener);
+          break;
+        }
+      }
+      if (listener_list.length === 1) {
+        this._events[event] = listener_list[0];
+      }
+      if (listener_list.length === 0) {
+        this._events[event] = undefined;
+      }
     }
   }
   return this;
