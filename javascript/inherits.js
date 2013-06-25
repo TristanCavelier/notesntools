@@ -11,6 +11,8 @@ function inherits(constructor, superConstructor) {
   superConstructor.prototype = constructor.prototype;
 }
 
+exports.inherits = inherits
+
 ////////////////////////////////////////////////////////////////////////////////
 // example
 
