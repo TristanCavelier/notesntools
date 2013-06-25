@@ -14,9 +14,11 @@ function type(value) {
   )[1];
 }
 
+exports.type = type;
+
 ////////////////////////////////////////////////////////////////////////////////
 // Tests
 
-print("type():", type({}) === "Object");
-print("type():", type("") === "String");
-print("type():", type([]) === "Array")
+console.log("type():", type({}) === "Object");
+console.log("type():", type("") === "String");
+console.log("type():", type([]) === "Array")
