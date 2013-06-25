@@ -214,3 +214,38 @@ EventEmitter.prototype.listeners = function (event) {
 EventEmitter.listenerCount = function (emitter, event) {
   return emitter.listeners(event).length;
 };
+
+exports.EventEmitter = EventEmitter;
+
+////////////////////////////////////////////////////////////////////////////////
+
+// keywords: js, javascript, nodejs events.EventEmitter, clonable
+
+var util = require('util');
+var deepClone = require('./deepClone.js').deepClone;
+
+/**
+ * An EventEmitter with an added method to clone this object.
+ *
+ * @class ClonableEventEmitter
+ * @constructor
+ */
+function ClonableEventEmitter() {
+  EventEmitter.call(this);
+}
+util.inherits(ClonableEventEmitter, EventEmitter);
+
+/**
+ * Returns a clone of this object.
+ *
+ * @method clone
+ * @return {ClonableEventEmitter} The clone of this object
+ */
+ClonableEventEmitter.prototype.clone = function () {
+  var new_one = new ClonableEventEmitter(), i, j;
+  new_one._maxListeners = deepClone(this._maxListeners);
+  new_one._events = deepClone(this._events);
+  return new_one;
+};
+
+exports.ClonableEventEmitter = ClonableEventEmitter;
