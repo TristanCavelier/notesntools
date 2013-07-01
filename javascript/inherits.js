@@ -8,7 +8,7 @@
  */
 function inherits(constructor, superConstructor) {
   constructor.super_ = superConstructor;
-  superConstructor.prototype = constructor.prototype;
+  constructor.prototype = Object.create(superConstructor.prototype, {});
 }
 
 exports.inherits = inherits
@@ -21,29 +21,32 @@ function A() {
 }
 A.prototype = {
   "b": function () {
-    console.log(this.a);
-  }
+    console.log(this.a); // print a
+  },
+  "d": function () {
+    console.log(this.a); // print a
+  },
+  "constructor": A
 };
 
 var a = new A();
-console.log(a.a);
 a.b();
 
-
+console.log('---');
 
 function C() {
   A.call(this);
   this.c = 3;
 }
 
-inherits(A, C);
+inherits(C, A);
 
 C.prototype.d = function () {
-  console.log(this.a);
-  this.b();
+  A.prototype.d.apply(this, []); // print a
+  this.b(); // print a
+  console.log(this.c); // print c
 }
+C.prototype.constructor = C;
 
 var c = new C();
-console.log(c.a);
-console.log(c.c);
 c.d();
