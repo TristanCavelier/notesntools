@@ -16,8 +16,8 @@ exports.inherits = inherits
 ////////////////////////////////////////////////////////////////////////////////
 // example
 
-function A() {
-  this.a = 2;
+function A(a) {
+  this.a = a || 2;
 }
 A.prototype = {
   "b": function () {
@@ -34,9 +34,9 @@ a.b();
 
 console.log('---');
 
-function C() {
-  A.call(this);
-  this.c = 3;
+function C(a, c) {
+  A.call(this, a);
+  this.c = c || 3;
 }
 
 inherits(C, A);
@@ -48,5 +48,5 @@ C.prototype.d = function () {
 }
 C.prototype.constructor = C;
 
-var c = new C();
+var c = new C(3, 4);
 c.d();
