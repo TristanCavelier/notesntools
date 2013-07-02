@@ -1,5 +1,8 @@
+/*jslint indent: 2, nomen: true */
 
-// keywords: js, javascript, event emitter deferred, promises, done, fail, always, resolve, reject
+// keywords: js, javascript, event emitter deferred, promises, done, fail, always, resolve, reject, post, each
+
+"use strict";
 
 var inherits = require('util').inherits,
   EventEmitter = require('events').EventEmitter;
@@ -15,6 +18,7 @@ function Promise() {
   EventEmitter.call(this);
 }
 inherits(Promise, EventEmitter);
+Promise.prototype.constructor = Promise;
 
 /**
  * Set the callback to call on done.
@@ -39,7 +43,7 @@ Promise.prototype.fail = function (onFail) {
 };
 
 /**
- * Set the callback to call on done or on fail.
+ * Set the callback to call on done or on end.
  *
  * @method always
  * @param  {Function} onEnd The callback to call on end
@@ -48,6 +52,18 @@ Promise.prototype.fail = function (onFail) {
 Promise.prototype.always = function (onEnd) {
   this.once('resolve', onEnd);
   this.once('reject', onEnd);
+  return this;
+};
+
+/**
+ * Set the callback to call on post.
+ *
+ * @method each
+ * @param  {Function} onPost The callback to call on post
+ * @return {Promise} This
+ */
+Promise.prototype.each = function (onPost) {
+  this.on('post', onPost);
   return this;
 };
 
@@ -67,6 +83,7 @@ function Deferred() {
   this._promise = new Promise();
 }
 inherits(Deferred, EventEmitter);
+Deferred.prototype.construtor = Deferred;
 
 /**
  * Resolve the command sending on event asynchronously to the promise with the
@@ -91,7 +108,7 @@ Deferred.prototype.resolve = function () {
     i._promise.emit.apply(i._promise, args);
   });
   i._promise.removeAllListeners('reject');
-  return i;
+  return this;
 };
 
 /**
@@ -117,7 +134,27 @@ Deferred.prototype.reject = function () {
     i._promise.emit.apply(i._promise, args);
   });
   i._promise.removeAllListeners('resolve');
-  return i;
+  return this;
+};
+
+/**
+ * Post something to the promise. The promise can catch each post with the
+ * `each` method.
+ *
+ * @method post
+ * @param  {Any} [args]* The arguments to give
+ * @return {Deferred} This
+ */
+Deferred.prototype.post = function () {
+  var i, args = ["post"];
+  for (i = 0; i < arguments.length; i += 1) {
+    args[i + 1] = arguments[i];
+  }
+  i = this;
+  setTimeout(function () {
+    i._promise.emit.apply(i._promise, args);
+  });
+  return this;
 };
 
 /**
@@ -167,3 +204,22 @@ myProcess().done(function (answer) {
 }).done(function (answer) {
   console.log('done', answer);
 });
+
+setTimeout(function () {
+  function myProcess() {
+    return Deferred.call(function () {
+      var deferred = this;
+      deferred.post('a');
+      deferred.post('b');
+      deferred.post('c');
+      deferred.resolve('d');
+    });
+  }
+  myProcess().each(function (answer) {
+    console.log(1, answer);
+  }).each(function (answer) {
+    console.log(2, answer);
+  }).done(function (answer) {
+    console.log(3, answer);
+  });
+}, 100);
