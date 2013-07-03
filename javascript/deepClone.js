@@ -21,7 +21,7 @@ function jsonDeepClone(object) {
 
 /**
  * Clones all native object in deep. Managed types: Object, Array, String,
- * Number, Boolean, null.
+ * Number, Boolean, Function, null.
  *
  * @param  {A} object The object to clone
  * @return {A} The cloned object
