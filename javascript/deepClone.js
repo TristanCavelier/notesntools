@@ -33,7 +33,7 @@ function deepClone(object) {
   if (type(object) === "Array") {
     cloned = [];
     for (i = 0; i < object.length; i += 1) {
-      cloned.push(deepClone(object[i]));
+      cloned[i] = deepClone(object[i]);
     }
     return cloned;
   }
