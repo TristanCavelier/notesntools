@@ -19,8 +19,6 @@ function jsonDeepClone(object) {
 
 // keywords: js, javascript, native, deep clone
 
-var type = require('./type.js').type;
-
 /**
  * Clones all native object in deep. Managed types: Object, Array, String,
  * Number, Boolean, null.
@@ -30,7 +28,7 @@ var type = require('./type.js').type;
  */
 function deepClone(object) {
   var i, cloned;
-  if (type(object) === "Array") {
+  if (Object.prototype.toString.call(object) === "[object Array]") {
     cloned = [];
     for (i = 0; i < object.length; i += 1) {
       cloned[i] = deepClone(object[i]);
