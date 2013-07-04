@@ -8,7 +8,14 @@
  */
 function inherits(constructor, superConstructor) {
   constructor.super_ = superConstructor;
-  constructor.prototype = Object.create(superConstructor.prototype, {});
+  constructor.prototype = Object.create(superConstructor.prototype, {
+    "constructor": {
+      "configurable": true,
+      "enumerable": false,
+      "writable": true,
+      "value": constructor
+    }
+  });
 }
 
 exports.inherits = inherits
