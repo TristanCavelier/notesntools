@@ -182,6 +182,7 @@ EventEmitter.prototype.emit = function (event) {
     } catch (e) {
       if (this.listeners("error").length > 0) {
         this.emit("error", e);
+        break;
       } else {
         throw e;
       }
