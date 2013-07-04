@@ -18,7 +18,6 @@ function Promise() {
   EventEmitter.call(this);
 }
 inherits(Promise, EventEmitter);
-Promise.prototype.constructor = Promise;
 
 /**
  * Set the callback to call on done.
@@ -83,7 +82,6 @@ function Deferred() {
   this._promise = new Promise();
 }
 inherits(Deferred, EventEmitter);
-Deferred.prototype.construtor = Deferred;
 
 /**
  * Resolve the command sending on event asynchronously to the promise with the
