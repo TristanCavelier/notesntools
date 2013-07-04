@@ -28,7 +28,7 @@ function jsonDeepClone(object) {
  */
 function deepClone(object) {
   var i, cloned;
-  if (Object.prototype.toString.call(object) === "[object Array]") {
+  if (Array.isArray(object)) {
     cloned = [];
     for (i = 0; i < object.length; i += 1) {
       cloned[i] = deepClone(object[i]);
