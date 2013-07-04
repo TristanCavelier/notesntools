@@ -53,6 +53,8 @@ exports.deepClone = deepClone
 ////////////////////////////////////////////////////////////////////////////////
 // Visual Tests
 
+var inspect = require('util').inspect;
+
 var a = {"_events": {
   "a": function () {},
   "b": [function () {}, function () {}],
@@ -61,5 +63,8 @@ var a = {"_events": {
 var b = deepClone(a);
 delete a._events.c
 delete a._events.b[0]
-console.log(a);
-console.log(b);
+console.log(inspect(a) ===
+            "{ _events: { a: [Function], b: [ , [Function] ] } }");
+console.log(inspect(b) ===
+            "{ _events: { a: [Function], b: [ [Function], " +
+            "[Function] ], c: [ 1, 'a' ] } }");
