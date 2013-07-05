@@ -42,12 +42,11 @@ EventEmitter.prototype.addListener = function (event, listener) {
   } else if (typeof listener_list === "function") {
     this._events[event] = [listener_list, listener];
   } else {
-    listener_list.push(listener);
+    listener_list[listener_list.length] = listener;
   }
   if (this._maxListeners > 0 &&
-      ((typeof listener_list === "function" && 1 > this._maxListeners) ||
-       (typeof listener_list !== "function" &&
-        listener_list.length > this._maxListeners)) &&
+      typeof listener_list !== "function" &&
+      listener_list.length > this._maxListeners &&
       listener_list.warned !== true) {
     console.warn("warning: possible EventEmitter memory leak detected. " +
                  listener_list.length + " listeners added. " +
@@ -74,8 +73,7 @@ EventEmitter.prototype.on = EventEmitter.prototype.addListener;
  * @return {EventEmitter} This emitter
  */
 EventEmitter.prototype.once = function (event, listener) {
-  var that = this;
-  var wrapper = function () {
+  var that = this, wrapper = function () {
     that.removeListener(event, wrapper);
     listener.apply(that, arguments);
   };
@@ -163,19 +161,12 @@ EventEmitter.prototype.setMaxListeners = function (max_listeners) {
  * @return {Boolean} true if event had listeners, false otherwise.
  */
 EventEmitter.prototype.emit = function (event) {
-  var i, argument_list = [], listener_list = [];
+  var i, argument_list, listener_list;
   if (!this._events[event]) {
     return false;
   }
-  // cloning listeners
-  for (i = 0; i < this._events[event].length; i += 1) {
-    listener_list.push(this._events[event][i]);
-  }
-  // create argument_list
-  for (i = 1; i < arguments.length; i += 1) {
-    argument_list.push(arguments[i]);
-  }
-  // call cloned listeners
+  listener_list = this._events[event].slice();
+  argument_list = Array.prototype.slice.call(arguments, 1);
   for (i = 0; i < listener_list.length; i += 1) {
     try {
       listener_list[i].apply(this, argument_list);
