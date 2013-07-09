@@ -44,6 +44,7 @@ EventEmitter.prototype.addListener = function (event, listener) {
     listener_list = listener;
   } else if (typeof listener_list === "function") {
     this._events[event] = [listener_list, listener];
+    listener_list = this._events[event]
   } else {
     listener_list[listener_list.length] = listener;
   }
