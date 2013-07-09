@@ -194,10 +194,8 @@ EventEmitter.prototype.emit = function (event) {
  * @return {Array} The array of listeners
  */
 EventEmitter.prototype.listeners = function (event) {
-  if (this._events[event]) {
-    return this._events[event];
-  }
-  return [];
+  return typeof this._events[event] === 'function' ?
+    [this._events[event]] : (this._events[event] || []).slice();
 };
 
 /**
