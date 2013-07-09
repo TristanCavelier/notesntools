@@ -106,7 +106,7 @@ EventEmitter.prototype.removeListener = function (event, listener) {
     }
     for (i = 0; i < listener_list.length; i += 1) {
       if (listener_list[i] === listener ||
-          listener_list.original === listener) {
+          listener_list[i].original === listener) {
         listener_list.splice(i, 1);
         this.emit("removeListener", event, listener);
         break;
