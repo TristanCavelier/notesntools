@@ -95,9 +95,8 @@ EventEmitter.prototype.once = function (event, listener) {
  * @return {EventEmitter} This emitter
  */
 EventEmitter.prototype.removeListener = function (event, listener) {
-  var listener_list, i;
-  if (this._events[event]) {
-    listener_list = this._events[event];
+  var listener_list = this._events[event], i;
+  if (listener_list) {
     if (typeof listener_list === "function") {
       if (listener_list === listener || listener_list.original === listener) {
         delete this._events[event];
@@ -132,14 +131,14 @@ EventEmitter.prototype.removeListener = function (event, listener) {
 EventEmitter.prototype.removeAllListeners = function (event) {
   var key;
   if (event === undefined) {
-    for (key in this._events) {
-      if (this._events.hasOwnProperty(key)) {
-        this.removeAllListeners(key);
+    for (event in this._events) {
+      if (this._events.hasOwnProperty(event)) {
+        delete this._events[event];
       }
     }
     return this;
   }
-  this._events[event] = undefined;
+  delete this._events[event];
   return this;
 };
 
