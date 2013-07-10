@@ -140,11 +140,11 @@ function format(url_obj) {
   result += url_obj.protocol || "";
   result += (url_obj.auth && url_obj.auth + "@") || "";
   result += url_obj.host || (url_obj.hostname || "") + (url_obj.port || "");
-  if (url_obj.pathname[0] !== "/" &&
+  if (url_obj.pathname === 'string' && url_obj.pathname[0] !== "/" &&
     result !== url_obj.protocol && result.slice(-1) !== "/") {
     result += "/";
   }
-  result += url_obj.pathname;
+  result += url_obj.pathname || '';
 
   if (url_obj.search) {
     if (url_obj.search[0] !== "?") {
@@ -155,7 +155,8 @@ function format(url_obj) {
     result += "?";
     if (typeof url_obj.query === "string") {
       result += url_obj.query;
-    } else if (typeof url_obj.query === "object") {
+    } else if (typeof url_obj.query === "object" &&
+               !Array.isArray(url_obj.query)) {
       for (key in url_obj.query) {
         if (url_obj.query.hasOwnProperty(key)) {
           result += key + "=" + url_obj.query[key] + "&";
@@ -167,7 +168,7 @@ function format(url_obj) {
   if (url_obj.hash && url_obj.hash[0] !== "#") {
     result += "#";
   }
-  result += url_obj.hash;
+  result += url_obj.hash || '';
   return result;
 }
 
