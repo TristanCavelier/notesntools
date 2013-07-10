@@ -8,7 +8,19 @@
  * http://nodejs.org/api/url.html
  */
 
-// Url as object:
+function Url() {
+  this.href = null;
+  this.protocol = null;
+  this.host = null;
+  this.auth = null;
+  this.hostname = null;
+  this.port = null;
+  this.pathname = null;
+  this.search = null;
+  this.path = null;
+  this.query = null;
+  this.hash = null;
+}
 // {
 //   href: http://user:pass@host.com:8080/p/a/t/h?query=string#hash
 //   protocol: http:
@@ -99,34 +111,33 @@ function parse(url_str, parse_query_string) {
   // TODO
   // * @param  {Boolean} [slashes_denote_host=false] If true, consider that the
   // *                   ressource name following double slash is the host
-  var result = url_re.exec(url_str), query, search;
+  var result = url_re.exec(url_str), query, search, url_obj;
   if (result === null) {
     return null;
   }
-  result = {
-    href: result[0] || "",
-    protocol: result[1] || "",
-    auth: result[2] || "",
-    hostname: result[3] || "",
-    port: result[4] || "",
-    pathname: result[5] || "",
-    search: result[6] || "",
-    hash: result[7] || ""
-  };
-  result.host = result.hostname + (result.port ? ":" + result.port : "");
-  result.path = result.pathname + result.search;
+  url_obj = new Url();
+  url_obj.href = result[0] || "";
+  url_obj.protocol = result[1] || "";
+  url_obj.auth = result[2] || "";
+  url_obj.hostname = result[3] || "";
+  url_obj.port = result[4] || "";
+  url_obj.pathname = result[5] || "";
+  url_obj.search = result[6] || "";
+  url_obj.hash = result[7] || "";
+  url_obj.host = url_obj.hostname + (url_obj.port ? ":" + url_obj.port : "");
+  url_obj.path = url_obj.pathname + url_obj.search;
 
   if (parse_query_string) {
-    result.query = {};
-    search = result.search;
+    url_obj.query = {};
+    search = url_obj.search;
     while ((query = query_re.exec(search)) !== null) {
-      result.query[query[1]] = query[2] || "";
+      url_obj.query[query[1]] = query[2] || "";
       search = search.replace(query_re, "");
     }
   } else {
-    result.query = result.search.slice(1);
+    url_obj.query = url_obj.search.slice(1);
   }
-  return result;
+  return url_obj;
 }
 
 /**
