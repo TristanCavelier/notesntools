@@ -77,9 +77,11 @@ var ipv6_re_str =
     ")?",
   search_re_str =
     "(\\?" +
-    "(?:%[0-9a-fA-F][0-9a-fA-F]|[/\\-a-zA-Z0-9\\._~!\\$'\\(\\)\\*\\+,;=:@])+" +
+    "(?:%[0-9a-fA-F][0-9a-fA-F]|" +
+    "[/\\-a-zA-Z0-9\\._~!\\$'\\(\\)\\*\\+\\?,;=:@])+" +
     "(?:&" +
-    "(?:%[0-9a-fA-F][0-9a-fA-F]|[/\\-a-zA-Z0-9\\._~!\\$'\\(\\)\\*\\+,;=:@])+" +
+    "(?:%[0-9a-fA-F][0-9a-fA-F]|" +
+    "[/\\-a-zA-Z0-9\\._~!\\$'\\(\\)\\*\\+\\?,;=:@])+" +
     ")*" +
     ")?",
   hash_re_str =
@@ -95,7 +97,8 @@ var ipv6_re_str =
     "(" +
     "(?:%[0-9a-fA-F][0-9a-fA-F]|[/\\-a-zA-Z0-9\\._~!\\$'\\(\\)\\*\\+,;:@])+" +
     ")(?:=(" +
-    "(?:%[0-9a-fA-F][0-9a-fA-F]|[/\\-a-zA-Z0-9\\._~!\\$'\\(\\)\\*\\+,;=:@])+" +
+    "(?:%[0-9a-fA-F][0-9a-fA-F]|" +
+    "[/\\-a-zA-Z0-9\\._~!\\$'\\(\\)\\*\\+\\?,;=:@])+" +
     "))?",
   query_re = new RegExp(query_re_str);
 
@@ -111,7 +114,9 @@ function parse(url_str, parse_query_string) {
   // TODO
   // * @param  {Boolean} [slashes_denote_host=false] If true, consider that the
   // *                   ressource name following double slash is the host
-  var result = url_re.exec(url_str), query, search, url_obj;
+  var result, query, search, url_obj;
+  url_str = url_str.replace(/ /g, '%20');
+  result = url_re.exec(url_str);
   if (result === null) {
     return null;
   }
@@ -131,7 +136,8 @@ function parse(url_str, parse_query_string) {
     url_obj.query = {};
     search = url_obj.search;
     while ((query = query_re.exec(search)) !== null) {
-      url_obj.query[query[1]] = query[2] || "";
+      url_obj.query[decodeURI(query[1]).replace(/%26/g, '&')] =
+        decodeURI(query[2] || "").replace(/%26/g, '&');
       search = search.replace(query_re, "");
     }
   } else {
