@@ -44,7 +44,7 @@ EventEmitter.prototype.addListener = function (event, listener) {
     listener_list = listener;
   } else if (typeof listener_list === "function") {
     this._events[event] = [listener_list, listener];
-    listener_list = this._events[event]
+    listener_list = this._events[event];
   } else {
     listener_list[listener_list.length] = listener;
   }
@@ -131,9 +131,9 @@ EventEmitter.prototype.removeListener = function (event, listener) {
 EventEmitter.prototype.removeAllListeners = function (event) {
   var key;
   if (event === undefined) {
-    for (event in this._events) {
-      if (this._events.hasOwnProperty(event)) {
-        delete this._events[event];
+    for (key in this._events) {
+      if (this._events.hasOwnProperty(key)) {
+        delete this._events[key];
       }
     }
     return this;
@@ -197,8 +197,8 @@ EventEmitter.prototype.emit = function (event) {
  * @return {Array} The array of listeners
  */
 EventEmitter.prototype.listeners = function (event) {
-  return typeof this._events[event] === 'function' ?
-    [this._events[event]] : (this._events[event] || []).slice();
+  return (typeof this._events[event] === 'function' ?
+          [this._events[event]] : (this._events[event] || []).slice());
 };
 
 /**
