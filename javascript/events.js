@@ -165,10 +165,14 @@ EventEmitter.prototype.setMaxListeners = function (max_listeners) {
  */
 EventEmitter.prototype.emit = function (event) {
   var i, argument_list, listener_list;
-  if (!this._events[event]) {
+  listener_list = this._events[event];
+  if (typeof listener_list === 'function') {
+    listener_list = [listener_list];
+  } else if (Array.isArray(listener_list)) {
+    listener_list = listener_list.slice();
+  } else {
     return false;
   }
-  listener_list = this._events[event].slice();
   argument_list = Array.prototype.slice.call(arguments, 1);
   for (i = 0; i < listener_list.length; i += 1) {
     try {
