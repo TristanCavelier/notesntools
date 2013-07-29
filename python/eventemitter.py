@@ -62,14 +62,14 @@ class EventEmitter(object):
             self._warned_events[event] = True
         return self
 
-    def addListener(self, event, listener):
+    def addListener(self, *args, **kwargs):
         """Is equal to emitter.on method.
 
         Arguments:
         - `event`: The event name
         - `listener`: The listener callback
         """
-        return self.on(event, listener);
+        return self.on(*args, **kwargs);
 
     def once(self, event, listener):
         """Adds a one time listener for the vent. This listener is invoked only
