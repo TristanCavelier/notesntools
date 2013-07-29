@@ -1,19 +1,20 @@
 
 // keywords: js, javascript, uuid generator
 
+/**
+ * An Universal Unique ID generator
+ *
+ * @return {String} The new UUID.
+ */
 function uuid() {
-  var S4 = function () {
-    var i, string = Math.floor(
+  function S4() {
+    return ('0000' + Math.floor(
       Math.random() * 0x10000 /* 65536 */
-    ).toString(16);
-    for (i = string.length; i < 4; i += 1) {
-      string = '0'+string;
-    }
-    return string;
-  };
+    ).toString(16)).slice(-4);
+  }
   return S4() + S4() + "-" +
     S4() + "-" +
     S4() + "-" +
     S4() + "-" +
     S4() + S4() + S4();
-};
+}
