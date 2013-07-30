@@ -250,6 +250,10 @@ Deferred.prototype.reject = function () {
   this._solver.reject.apply(this._solver, arguments);
 };
 
+Deferred.prototype.notify = function () {
+  this._solver.notify.apply(this._solver, arguments);
+};
+
 Deferred.prototype.promise = function () {
   return this._promise;
 };
@@ -292,10 +296,18 @@ Deferred.prototype.promise = function () {
 
 // var p = (function () {
 //   var d = new Deferred();
-//   d.resolve('a');
+//   d.notify(1);
+//   setTimeout(function () {
+//     d.notify(2);
+//     d.resolve('a');
+//   });
 //   return d.promise();
 // }());
 
-// p.then(function (a) {
-//   console.log(a);
+// p.progress(function () {
+//   console.log('progress', arguments);
+// });
+
+// p.then(function () {
+//   console.log('then', arguments);
 // });
