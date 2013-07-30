@@ -22,6 +22,9 @@
 // THE SOFTWARE.
 //
 
+/*jslint indent: 2, maxlen: 80, sloppy: true, nomen: true */
+/*global */
+
 // keywords: js, javascript, promise, commonjs
 
 function Promise() {
@@ -31,6 +34,60 @@ function Promise() {
   this._state = "";
   this._answer = undefined;
 }
+
+Promise.createSolver = function (promise) {
+  return {
+    "resolve": function (answer) {
+      if (promise._state !== "resolved" && promise._state !== "rejected") {
+        promise._state = "resolved";
+        promise._answer = answer;
+        promise._onResolve.forEach(function (callback) {
+          setTimeout(function () {
+            callback(answer);
+          });
+        });
+        promise._onResolve = [];
+        promise._onReject = [];
+        promise._onProgress = [];
+      }
+    },
+    "reject": function (answer) {
+      if (promise._state !== "resolved" && promise._state !== "rejected") {
+        promise._state = "rejected";
+        promise._answer = answer;
+        promise._onReject.forEach(function (callback) {
+          setTimeout(function () {
+            callback(answer);
+          });
+        });
+        promise._onResolve = [];
+        promise._onReject = [];
+        promise._onProgress = [];
+      }
+    },
+    "notify": function (answer) {
+      promise._onProgress.forEach(function (callback) {
+        callback(answer);
+      });
+    }
+  };
+};
+
+Promise.prototype.solver = function () {
+  var that = this;
+  switch (this._state) {
+  case "running":
+    throw new Error("Promise().execute(): Already running");
+  case "resolved":
+    throw new Error("Promise().execute(): Resolved");
+  case "rejected":
+    throw new Error("Promise().execute(): Rejected");
+  default:
+    break;
+  }
+  this._state = "running";
+  return Promise.createSolver(this);
+};
 
 Promise.prototype.execute = function (callback) {
   var that = this;
@@ -44,41 +101,7 @@ Promise.prototype.execute = function (callback) {
   default:
     this._state = "running";
     setTimeout(function () {
-      callback({
-        "resolve": function (answer) {
-          if (that._state !== "resolved" && that._state !== "rejected") {
-            that._state = "resolved";
-            that._answer = answer;
-            that._onResolve.forEach(function (callback) {
-              setTimeout(function () {
-                callback(answer);
-              });
-            });
-            that._onResolve = [];
-            that._onReject = [];
-            that._onProgress = [];
-          }
-        },
-        "reject": function (answer) {
-          if (that._state !== "resolved" && that._state !== "rejected") {
-            that._state = "rejected";
-            that._answer = answer;
-            that._onReject.forEach(function (callback) {
-              setTimeout(function () {
-                callback(answer);
-              });
-            });
-            that._onResolve = [];
-            that._onReject = [];
-            that._onProgress = [];
-          }
-        },
-        "notify": function (answer) {
-          that._onProgress.forEach(function (callback) {
-            callback(answer);
-          });
-        }
-      });
+      callback(Promise.createSolver(this));
     });
     break;
   }
@@ -214,32 +237,17 @@ Promise.prototype.always = function (callback) {
 };
 
 
-
 function Deferred() {
   this._promise = new Promise();
-  this._solver = null;
-  this._promise.execute(function (r) {
-    if (Array.isArray(this._solver)) {
-      r[this._solver[0]].apply(r, this._solver[1]);
-    }
-    this._solver = r;
-  }.bind(this));
+  this._solver = this._promise.solver();
 }
 
 Deferred.prototype.resolve = function () {
-  if (!this._solver) {
-    this._solver = ['resolve', arguments];
-  } else if (!Array.isArray(this._solver)) {
-    this._solver.resolve.apply(this._solver, arguments);
-  }
+  this._solver.resolve.apply(this._solver, arguments);
 };
 
 Deferred.prototype.reject = function () {
-  if (!this._solver) {
-    this._solver = ['reject', arguments];
-  } else if (!Array.isArray(this._solver)) {
-    this._solver.reject.apply(this._solver, arguments);
-  }
+  this._solver.reject.apply(this._solver, arguments);
 };
 
 Deferred.prototype.promise = function () {
