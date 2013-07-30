@@ -36,9 +36,11 @@ Promise.prototype.execute = function (callback) {
   var that = this;
   switch (this._state) {
   case "running":
+    throw new Error("Promise().execute(): Already running");
   case "resolved":
+    throw new Error("Promise().execute(): Resolved");
   case "rejected":
-    break;
+    throw new Error("Promise().execute(): Rejected");
   default:
     this._state = "running";
     setTimeout(function () {
@@ -211,35 +213,81 @@ Promise.prototype.always = function (callback) {
   return this;
 };
 
-////////////////////////////////////////////////////////////////////////////////
-// Tests
 
-var one = new Promise().execute(function (r) {
-  r.notify(1);
-  r.notify(2);
-  r.resolve('a');
-  r.notify(3);
-}).progress(function (answer) {
-  console.log('progress', answer);
-});
 
-var two = one.then(function (answer) {
-  console.log(1, answer);
-  return answer + 'b';
-});
+function Deferred() {
+  this._promise = new Promise();
+  this._solver = null;
+  this._promise.execute(function (r) {
+    if (Array.isArray(this._solver)) {
+      r[this._solver[0]].apply(r, this._solver[1]);
+    }
+    this._solver = r;
+  }.bind(this));
+}
 
-two.then(function (answer) {
-  console.log(2, answer);
-  return answer + 'c';
-}).done(function (answer) {
-  console.log('done', answer);
-});
+Deferred.prototype.resolve = function () {
+  if (!this._solver) {
+    this._solver = ['resolve', arguments];
+  } else if (!Array.isArray(this._solver)) {
+    this._solver.resolve.apply(this._solver, arguments);
+  }
+};
 
-setTimeout(function () {
-  one.then(function (answer) {
-    console.log(3, answer);
-  });
-  one.done(function (answer) {
-    console.log(4, answer);
-  });
-}, 100);
+Deferred.prototype.reject = function () {
+  if (!this._solver) {
+    this._solver = ['reject', arguments];
+  } else if (!Array.isArray(this._solver)) {
+    this._solver.reject.apply(this._solver, arguments);
+  }
+};
+
+Deferred.prototype.promise = function () {
+  return this._promise;
+};
+
+// /////////////////////////////////////////////////////////////////////////////
+// // Tests
+
+// var one = new Promise().execute(function (r) {
+//   r.notify(1);
+//   r.notify(2);
+//   r.resolve('a');
+//   r.notify(3);
+// }).progress(function (answer) {
+//   console.log('progress', answer);
+// });
+
+// var two = one.then(function (answer) {
+//   console.log(1, answer);
+//   return answer + 'b';
+// });
+
+// two.then(function (answer) {
+//   console.log(2, answer);
+//   return answer + 'c';
+// }).done(function (answer) {
+//   console.log('done', answer);
+// });
+
+// setTimeout(function () {
+//   one.then(function (answer) {
+//     console.log(3, answer);
+//   });
+//   one.done(function (answer) {
+//     console.log(4, answer);
+//   });
+// }, 100);
+
+// /////////////////////////////////////////////////////////////////////////////
+// // Tests Deferred
+
+// var p = (function () {
+//   var d = new Deferred();
+//   d.resolve('a');
+//   return d.promise();
+// }());
+
+// p.then(function (a) {
+//   console.log(a);
+// });
