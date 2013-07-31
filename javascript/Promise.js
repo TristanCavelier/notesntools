@@ -228,9 +228,8 @@ Promise.prototype.always = function (callback) {
     });
     break;
   default:
-    ['_onReject', '_onResolve'].forEach(function (event) {
-      that[event].push(callback);
-    });
+    that._onReject.push(callback);
+    that._onResolve.push(callback);
     break;
   }
   return this;
