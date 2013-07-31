@@ -101,7 +101,7 @@ Promise.prototype.execute = function (callback) {
   default:
     this._state = "running";
     setTimeout(function () {
-      callback(Promise.createSolver(this));
+      callback(Promise.createSolver(that));
     });
     break;
   }
@@ -290,6 +290,40 @@ Deferred.prototype.promise = function () {
 //     console.log(4, answer);
 //   });
 // }, 100);
+
+// ////////////////////////////////////////
+
+// function onDone(answer) {
+//   console.log('done', answer);
+// }
+
+// function onFail(answer) {
+//   console.log('fail', answer);
+// }
+
+// function nThen(answer) {
+//   console.log('nThen', answer);
+//   if (answer === 13) {
+//     throw new Error('13 is 13!');
+//   }
+//   return answer + 1;
+// }
+
+// function errThen(answer) {
+//   console.log('errThen', answer);
+// }
+
+// function execute() {
+//   var d = new Deferred();
+//   d.resolve(12);
+//   return d.promise();
+// }
+
+// var p = execute();
+
+// p.then(nThen, errThen).then(nThen, errThen).done(onDone).fail(onFail);
+// p.done(onDone).then(nThen, errThen);
+
 
 // /////////////////////////////////////////////////////////////////////////////
 // // Tests Deferred
