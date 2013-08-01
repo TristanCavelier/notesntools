@@ -32,80 +32,148 @@ function Promise() {
   this._onResolve = [];
   this._onProgress = [];
   this._state = "";
-  this._answer = undefined;
+  this._answers = undefined;
 }
 
-Promise.createSolver = function (promise) {
-  return {
-    "resolve": function (answer) {
-      if (promise._state !== "resolved" && promise._state !== "rejected") {
-        promise._state = "resolved";
-        promise._answer = answer;
-        promise._onResolve.forEach(function (callback) {
-          setTimeout(function () {
-            callback(answer);
-          });
-        });
-        promise._onResolve = [];
-        promise._onReject = [];
-        promise._onProgress = [];
-      }
-    },
-    "reject": function (answer) {
-      if (promise._state !== "resolved" && promise._state !== "rejected") {
-        promise._state = "rejected";
-        promise._answer = answer;
-        promise._onReject.forEach(function (callback) {
-          setTimeout(function () {
-            callback(answer);
-          });
-        });
-        promise._onResolve = [];
-        promise._onReject = [];
-        promise._onProgress = [];
-      }
-    },
-    "notify": function (answer) {
-      promise._onProgress.forEach(function (callback) {
-        callback(answer);
-      });
+Promise.when = function (callback) {
+  return new Promise().solver(function (solver) {
+    try {
+      solver.resolve(callback());
+    } catch (e) {
+      solver.reject(e);
     }
-  };
+  });
 };
 
-Promise.prototype.solver = function () {
+Promise.all = function () { // *promises
+  var results = [], errors = [], count = 0, max, next = new Promise(), solver;
+  max = arguments.length;
+  solver = next.solver();
+  function finished() {
+    count += 1;
+    if (count !== max) {
+      return;
+    }
+    if (errors.length > 0) {
+      return solver.reject.apply(next, errors);
+    }
+    return solver.resolve.apply(next, results);
+  }
+  Array.prototype.forEach.call(arguments, function (promise, i) {
+    promise.done(function (answer) {
+      results[i] = answer;
+      return finished();
+    }).fail(function (answer) {
+      errors[i] = answer;
+      return finished();
+    });
+  });
+  return next;
+};
+
+Promise.first = function () { // *promises
+  var next = new Promise(), solver;
+  solver = next.solver();
+  function onSuccess() {
+    solver.resolve.apply(next, arguments);
+  }
+  function onError() {
+    solver.reject.apply(next, arguments);
+  }
+  Array.prototype.forEach.call(arguments, function (promise, i) {
+    promise.done(onSuccess).fail(onError);
+  });
+  return next;
+};
+
+Promise.delay = function (timeout, every) { // *promises
+  var next = new Promise(), solver, ident, now = 0;
+  solver = next.solver();
+  if (typeof every === 'number' && !isNaN(every)) {
+    ident = setInterval(function () {
+      now += every;
+      solver.notify(now);
+    }, every);
+  }
+  setTimeout(function () {
+    clearInterval(ident);
+    solver.resolve(timeout);
+  }, timeout);
+  return next;
+};
+
+Promise.timeout = function (promise, timeout) {
+  var next = new Promise(), solver, i;
+  solver = next.solver();
+  i = setTimeout(function () {
+    solver.reject.apply(next, [new Error("Timeout")]);
+  }, timeout);
+  promise.done(function () {
+    clearTimeout(i);
+    solver.resolve.apply(next, arguments);
+  }).fail(function () {
+    clearTimeout(i);
+    solver.reject.apply(next, arguments);
+  });
+  return next;
+};
+
+Promise.prototype.solver = function (callback) {
   var that = this;
   switch (this._state) {
   case "running":
-    throw new Error("Promise().execute(): Already running");
   case "resolved":
-    throw new Error("Promise().execute(): Resolved");
   case "rejected":
-    throw new Error("Promise().execute(): Rejected");
+    throw new Error("Promise().solver(): Already " + this._state);
   default:
     break;
+  }
+  function createSolver(promise) {
+    return {
+      "resolve": function () {
+        if (promise._state !== "resolved" && promise._state !== "rejected") {
+          promise._state = "resolved";
+          promise._answers = arguments;
+          promise._onResolve.forEach(function (callback) {
+            setTimeout(function () {
+              callback.apply(that, promise._answers);
+            });
+          });
+          promise._onResolve = [];
+          promise._onReject = [];
+          promise._onProgress = [];
+        }
+      },
+      "reject": function () {
+        if (promise._state !== "resolved" && promise._state !== "rejected") {
+          promise._state = "rejected";
+          promise._answers = arguments;
+          promise._onReject.forEach(function (callback) {
+            setTimeout(function () {
+              callback.apply(that, promise._answers);
+            });
+          });
+          promise._onResolve = [];
+          promise._onReject = [];
+          promise._onProgress = [];
+        }
+      },
+      "notify": function () {
+        var answers = arguments;
+        promise._onProgress.forEach(function (callback) {
+          callback.apply(that, answers);
+        });
+      }
+    };
   }
   this._state = "running";
-  return Promise.createSolver(this);
-};
-
-Promise.prototype.execute = function (callback) {
-  var that = this;
-  switch (this._state) {
-  case "running":
-    throw new Error("Promise().execute(): Already running");
-  case "resolved":
-    throw new Error("Promise().execute(): Resolved");
-  case "rejected":
-    throw new Error("Promise().execute(): Rejected");
-  default:
-    this._state = "running";
+  if (typeof callback === 'function') {
     setTimeout(function () {
-      callback(Promise.createSolver(that));
+      callback(createSolver(that));
     });
-    break;
+    return this;
   }
-  return this;
+  return createSolver(this);
 };
 
 Promise.prototype.then = function (onSuccess, onError, onProgress) {
@@ -113,9 +181,9 @@ Promise.prototype.then = function (onSuccess, onError, onProgress) {
   switch (this._state) {
   case "resolved":
     if (typeof onSuccess === 'function') {
-      next.execute(function (resolver) {
+      next.solver(function (resolver) {
         try {
-          resolver.resolve(onSuccess(that._answer));
+          resolver.resolve(onSuccess.apply(that, that._answers));
         } catch (e) {
           resolver.reject(e);
         }
@@ -124,9 +192,9 @@ Promise.prototype.then = function (onSuccess, onError, onProgress) {
     break;
   case "rejected":
     if (typeof onError === 'function') {
-      next.execute(function (resolver) {
+      next.solver(function (resolver) {
         try {
-          resolver.resolve(onError(that._answer));
+          resolver.resolve(onError.apply(that, that._answers));
         } catch (e) {
           resolver.reject(e);
         }
@@ -135,10 +203,11 @@ Promise.prototype.then = function (onSuccess, onError, onProgress) {
     break;
   default:
     if (typeof onSuccess === 'function') {
-      this._onResolve.push(function (answer) {
-        next.execute(function (resolver) {
+      this._onResolve.push(function () {
+        var answers = arguments;
+        next.solver(function (resolver) {
           try {
-            resolver.resolve(onSuccess(answer));
+            resolver.resolve(onSuccess.apply(that, answers));
           } catch (e) {
             resolver.reject(e);
           }
@@ -146,10 +215,11 @@ Promise.prototype.then = function (onSuccess, onError, onProgress) {
       });
     }
     if (typeof onError === 'function') {
-      this._onReject.push(function (answer) {
-        next.execute(function (resolver) {
+      this._onReject.push(function () {
+        var answers = arguments;
+        next.solver(function (resolver) {
           try {
-            resolver.resolve(onError(answer));
+            resolver.resolve(onError.apply(that, answers));
           } catch (e) {
             resolver.reject(e);
           }
@@ -172,7 +242,7 @@ Promise.prototype.done = function (callback) {
   switch (this._state) {
   case "resolved":
     setTimeout(function () {
-      callback(that._answer);
+      callback.apply(that, that._answers);
     });
     break;
   default:
@@ -190,7 +260,7 @@ Promise.prototype.fail = function (callback) {
   switch (this._state) {
   case "rejected":
     setTimeout(function () {
-      callback(that._answer);
+      callback.apply(that, that._answers);
     });
     break;
   default:
@@ -224,7 +294,7 @@ Promise.prototype.always = function (callback) {
   case "resolved":
   case "rejected":
     setTimeout(function () {
-      callback(that._answer);
+      callback.apply(that, that._answers);
     });
     break;
   default:
@@ -260,7 +330,7 @@ Deferred.prototype.promise = function () {
 // /////////////////////////////////////////////////////////////////////////////
 // // Tests
 
-// var one = new Promise().execute(function (r) {
+// var one = new Promise().solver(function (r) {
 //   r.notify(1);
 //   r.notify(2);
 //   r.resolve('a');
@@ -323,6 +393,36 @@ Deferred.prototype.promise = function () {
 // p.then(nThen, errThen).then(nThen, errThen).done(onDone).fail(onFail);
 // p.done(onDone).then(nThen, errThen);
 
+////////////////////////////////////////
+
+// function onsuccess() {
+//   console.log('success', arguments);
+// }
+// function onprogress() {
+//   console.log('progress', arguments);
+// }
+// function onerror() {
+//   console.log('error', arguments);
+// }
+
+// Promise.when(function () {
+//   return 12;
+// }).done(onsuccess, onerror);
+
+// Promise.all(Promise.when(function () {
+//   return 1;
+// }), Promise.when(function () {
+//   return 2;
+// })).done(onsuccess);
+
+// Promise.delay(1000, 100).done(onsuccess).progress(onprogress);
+
+// Promise.first(Promise.delay(100), Promise.when(function () {
+//   return 2;
+// })).done(onsuccess);
+
+// Promise.timeout(Promise.delay(100), 1000).done(onsuccess).fail(onerror);
+// Promise.timeout(Promise.delay(1000), 100).done(onsuccess).fail(onerror);
 
 // /////////////////////////////////////////////////////////////////////////////
 // // Tests Deferred
