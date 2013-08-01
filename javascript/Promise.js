@@ -35,7 +35,19 @@ function Promise() {
   this._answers = undefined;
 }
 
-Promise.when = function (callback) {
+Promise.when = function (item) {
+  if (item instanceof Promise) {
+    return item;
+  }
+  if (typeof Deferred === 'function' && item instanceof Deferred) {
+    return item.promise();
+  }
+  return new Promise().solver(function (solver) {
+    solver.resolve(item);
+  });
+};
+
+Promise.execute = function (callback) {
   return new Promise().solver(function (solver) {
     try {
       solver.resolve(callback());
@@ -405,19 +417,23 @@ Deferred.prototype.promise = function () {
 //   console.log('error', arguments);
 // }
 
-// Promise.when(function () {
+// Promise.when('lol').done(onsuccess);
+
+// Promise.execute(function () {
 //   return 12;
 // }).done(onsuccess, onerror);
 
-// Promise.all(Promise.when(function () {
+// Promise.all(Promise.execute(function () {
 //   return 1;
-// }), Promise.when(function () {
+// }), Promise.execute(function () {
 //   return 2;
 // })).done(onsuccess);
 
 // Promise.delay(1000, 100).done(onsuccess).progress(onprogress);
 
-// Promise.first(Promise.delay(100), Promise.when(function () {
+// Promise.when(Promise.delay(100)).done(onsuccess);
+
+// Promise.first(Promise.delay(100), Promise.execute(function () {
 //   return 2;
 // })).done(onsuccess);
 
