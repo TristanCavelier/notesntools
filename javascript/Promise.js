@@ -23,10 +23,16 @@
 //
 
 /*jslint indent: 2, maxlen: 80, sloppy: true, nomen: true */
-/*global */
+/*global Deferred, setInterval, setTimeout, clearInterval, clearTimeout */
 
 // keywords: js, javascript, promise, commonjs
 
+/**
+ * Promise()
+ *
+ * @class Promise
+ * @constructor
+ */
 function Promise() {
   this._onReject = [];
   this._onResolve = [];
@@ -35,6 +41,20 @@ function Promise() {
   this._answers = undefined;
 }
 
+/**
+ * when(item): Promise
+ *
+ * Return an item as first parameter of the promise answer. If item is of
+ * type Promise, the method will just return the promise. If item is of type
+ * Deferred, the method will return the deferred promise.
+ *
+ *     Promise.when('a').then(console.log); // shows 'a'
+ *
+ * @method when
+ * @static
+ * @param  {Any} item The item to use
+ * @return {Promise} The promise
+ */
 Promise.when = function (item) {
   if (item instanceof Promise) {
     return item;
@@ -47,6 +67,20 @@ Promise.when = function (item) {
   });
 };
 
+/**
+ * execute(callback): Promise
+ *
+ * Execute the callback and use the returned value as promise answer.
+ *
+ *     Promise.execute(function () {
+ *       return 'a';
+ *     }).then(console.log); // shows 'a'
+ *
+ * @method execute
+ * @static
+ * @param  {Function} callback The callback to execute
+ * @return {Promise} The promise
+ */
 Promise.execute = function (callback) {
   return new Promise().solver(function (solver) {
     try {
@@ -57,6 +91,19 @@ Promise.execute = function (callback) {
   });
 };
 
+/**
+ * all(*items): Promise
+ *
+ * Resolve the promise only when item are resolved. The item type must be like
+ * the item parameter of the `when` static method.
+ *
+ *     Promise.all(Promise.when('a'), 'b').then(console.log); // shows 'a b'
+ *
+ * @method all
+ * @static
+ * @param  {Any} *items The items to use
+ * @return {Promise} The promise
+ */
 Promise.all = function () { // *promises
   var results = [], errors = [], count = 0, max, next = new Promise(), solver;
   max = arguments.length;
@@ -71,8 +118,8 @@ Promise.all = function () { // *promises
     }
     return solver.resolve.apply(next, results);
   }
-  Array.prototype.forEach.call(arguments, function (promise, i) {
-    promise.done(function (answer) {
+  Array.prototype.forEach.call(arguments, function (item, i) {
+    Promise.when(item).done(function (answer) {
       results[i] = answer;
       return finished();
     }).fail(function (answer) {
@@ -83,6 +130,19 @@ Promise.all = function () { // *promises
   return next;
 };
 
+/**
+ * first(*items): Promise
+ *
+ * Resolve the promise only when one item is resolved. The item type must be
+ * like the item parameter of the `when` static method.
+ *
+ *     Promise.first(Promise.delay(100), 'b').then(console.log); // shows 'b'
+ *
+ * @method first
+ * @static
+ * @param  {Any} *items The items to use
+ * @return {Promise} The promise
+ */
 Promise.first = function () { // *promises
   var next = new Promise(), solver;
   solver = next.solver();
@@ -92,12 +152,32 @@ Promise.first = function () { // *promises
   function onError() {
     solver.reject.apply(next, arguments);
   }
-  Array.prototype.forEach.call(arguments, function (promise, i) {
-    promise.done(onSuccess).fail(onError);
+  Array.prototype.forEach.call(arguments, function (item) {
+    Promise.when(item).done(onSuccess).fail(onError);
   });
   return next;
 };
 
+/**
+ * delay(timeout[, every]): Promise
+ *
+ * Resolve the promise after `timeout` milliseconds and notfies us every `every`
+ * milliseconds.
+ *
+ *     Promise.delay(50, 10).then(console.log, console.error, console.log);
+ *     // // shows
+ *     // 10 // from progress
+ *     // 20 // from progress
+ *     // 30 // from progress
+ *     // 40 // from progress
+ *     // 50 // from success
+ *
+ * @method delay
+ * @static
+ * @param  {Number} timeout In milliseconds
+ * @param  {Number} [every] In milliseconds
+ * @return {Promise} The promise
+ */
 Promise.delay = function (timeout, every) { // *promises
   var next = new Promise(), solver, ident, now = 0;
   solver = next.solver();
@@ -114,13 +194,30 @@ Promise.delay = function (timeout, every) { // *promises
   return next;
 };
 
-Promise.timeout = function (promise, timeout) {
+/**
+ * timeout(item, timeout): Promise
+ *
+ * If the promise is not resolved after `timeout` milliseconds, it returns a
+ * timeout error.
+ *
+ *     Promise.timeout('a', 100).then(console.log); // shows 'a'
+ *
+ *     Promise.timeout(Promise.delay(100), 10).then(console.log, console.error);
+ *     // shows Error Timeout
+ *
+ * @method timeout
+ * @static
+ * @param  {Any} Item The item to use
+ * @param  {Number} timeout In milliseconds
+ * @return {Promise} The promise
+ */
+Promise.timeout = function (item, timeout) {
   var next = new Promise(), solver, i;
   solver = next.solver();
   i = setTimeout(function () {
     solver.reject.apply(next, [new Error("Timeout")]);
   }, timeout);
-  promise.done(function () {
+  Promise.when(item).done(function () {
     clearTimeout(i);
     solver.resolve.apply(next, arguments);
   }).fail(function () {
@@ -130,6 +227,17 @@ Promise.timeout = function (promise, timeout) {
   return next;
 };
 
+/**
+ * solver([callback]): Promise
+ *
+ * Set the promise to the 'running' state. If `callback` is a function, then it
+ * will be executed with a solver as first parameter and returns the promise.
+ * Else it returns the promise solver.
+ *
+ * @method solver
+ * @param  {Function} [callback] The callback to execute
+ * @return {Promise,Object} The promise or the promise solver
+ */
 Promise.prototype.solver = function (callback) {
   var that = this;
   switch (this._state) {
@@ -339,6 +447,9 @@ Deferred.prototype.promise = function () {
   return this._promise;
 };
 
+////////////////////////////////////////////////////////////////////////////////
+exports.Promise = Promise;
+exports.Deferred = Deferred;
 // /////////////////////////////////////////////////////////////////////////////
 // // Tests
 
