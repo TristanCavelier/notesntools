@@ -41,8 +41,12 @@ function Promise() {
   this._answers = undefined;
 }
 
+////////////////////////////////////////////////////////////
+// http://wiki.commonjs.org/wiki/Promises/B
+// when(value, callback, errback_opt)
+
 /**
- * when(item): Promise
+ * when(item, [onSuccess], [onError]): Promise
  *
  * Return an item as first parameter of the promise answer. If item is of
  * type Promise, the method will just return the promise. If item is of type
@@ -53,18 +57,75 @@ function Promise() {
  * @method when
  * @static
  * @param  {Any} item The item to use
+ * @param  {Function} [onSuccess] The callback called on success
+ * @param  {Function} [onError] the callback called on error
  * @return {Promise} The promise
  */
-Promise.when = function (item) {
+Promise.when = function (item, onSuccess, onError) {
   if (item instanceof Promise) {
     return item;
   }
   if (typeof Deferred === 'function' && item instanceof Deferred) {
     return item.promise();
   }
-  return new Promise().solver(function (solver) {
-    solver.resolve(item);
-  });
+  var p = new Promise().done(onSuccess).fail(onError);
+  p.defer().resolve(item);
+  return p;
+};
+
+////////////////////////////////////////////////////////////
+// http://wiki.commonjs.org/wiki/Promises/B
+// get(object, name)
+
+/**
+ * get(dict, property): Promise
+ *
+ * Return the dict property as first parameter of the promise answer.
+ *
+ *     Promise.get({'a': 'b'}, 'a').then(console.log); // shows 'b'
+ *
+ * @method get
+ * @static
+ * @param  {Object} dict The object to use
+ * @param  {String} property The object property name
+ * @return {Promise} The promise
+ */
+Promise.get = function (dict, property) {
+  var p = new Promise(), solver = p.defer();
+  try {
+    solver.resolve(dict[property]);
+  } catch (e) {
+    solver.reject(e);
+  }
+  return p;
+};
+
+////////////////////////////////////////////////////////////
+// http://wiki.commonjs.org/wiki/Promises/B
+// put(object, name, value)
+
+/**
+ * put(dict, property, value): Promise
+ *
+ * Set and return the dict property as first parameter of the promise answer.
+ *
+ *     Promise.put({'a': 'b'}, 'a', 'c').then(console.log); // shows 'c'
+ *
+ * @method put
+ * @static
+ * @param  {Object} dict The object to use
+ * @param  {String} property The object property name
+ * @param  {Any} value The value
+ * @return {Promise} The promise
+ */
+Promise.put = function (dict, property, value) {
+  var p = new Promise(), solver = p.defer();
+  try {
+    solver.resolve(dict[property] = value);
+  } catch (e) {
+    solver.reject(e);
+  }
+  return p;
 };
 
 /**
@@ -82,7 +143,7 @@ Promise.when = function (item) {
  * @return {Promise} The promise
  */
 Promise.execute = function (callback) {
-  return new Promise().solver(function (solver) {
+  return new Promise().defer(function (solver) {
     try {
       solver.resolve(callback());
     } catch (e) {
@@ -107,16 +168,16 @@ Promise.execute = function (callback) {
 Promise.all = function () { // *promises
   var results = [], errors = [], count = 0, max, next = new Promise(), solver;
   max = arguments.length;
-  solver = next.solver();
+  solver = next.defer();
   function finished() {
     count += 1;
     if (count !== max) {
       return;
     }
     if (errors.length > 0) {
-      return solver.reject.apply(next, errors);
+      return solver.reject.apply(solver, errors);
     }
-    return solver.resolve.apply(next, results);
+    return solver.resolve.apply(solver, results);
   }
   Array.prototype.forEach.call(arguments, function (item, i) {
     Promise.when(item).done(function (answer) {
@@ -144,16 +205,9 @@ Promise.all = function () { // *promises
  * @return {Promise} The promise
  */
 Promise.first = function () { // *promises
-  var next = new Promise(), solver;
-  solver = next.solver();
-  function onSuccess() {
-    solver.resolve.apply(next, arguments);
-  }
-  function onError() {
-    solver.reject.apply(next, arguments);
-  }
+  var next = new Promise(), solver = next.defer();
   Array.prototype.forEach.call(arguments, function (item) {
-    Promise.when(item).done(onSuccess).fail(onError);
+    Promise.when(item).done(solver.resolve).fail(solver.reject);
   });
   return next;
 };
@@ -180,7 +234,7 @@ Promise.first = function () { // *promises
  */
 Promise.delay = function (timeout, every) { // *promises
   var next = new Promise(), solver, ident, now = 0;
-  solver = next.solver();
+  solver = next.defer();
   if (typeof every === 'number' && !isNaN(every)) {
     ident = setInterval(function () {
       now += every;
@@ -213,7 +267,7 @@ Promise.delay = function (timeout, every) { // *promises
  */
 Promise.timeout = function (item, timeout) {
   var next = new Promise(), solver, i;
-  solver = next.solver();
+  solver = next.defer();
   i = setTimeout(function () {
     solver.reject.apply(next, [new Error("Timeout")]);
   }, timeout);
@@ -228,23 +282,23 @@ Promise.timeout = function (item, timeout) {
 };
 
 /**
- * solver([callback]): Promise
+ * defer([callback]): Promise
  *
  * Set the promise to the 'running' state. If `callback` is a function, then it
  * will be executed with a solver as first parameter and returns the promise.
  * Else it returns the promise solver.
  *
- * @method solver
+ * @method defer
  * @param  {Function} [callback] The callback to execute
  * @return {Promise,Object} The promise or the promise solver
  */
-Promise.prototype.solver = function (callback) {
+Promise.prototype.defer = function (callback) {
   var that = this;
   switch (this._state) {
   case "running":
   case "resolved":
   case "rejected":
-    throw new Error("Promise().solver(): Already " + this._state);
+    throw new Error("Promise().defer(): Already " + this._state);
   default:
     break;
   }
@@ -259,9 +313,10 @@ Promise.prototype.solver = function (callback) {
               callback.apply(that, promise._answers);
             });
           });
-          promise._onResolve = [];
-          promise._onReject = [];
-          promise._onProgress = [];
+          // free the memory
+          promise._onResolve = undefined;
+          promise._onReject = undefined;
+          promise._onProgress = undefined;
         }
       },
       "reject": function () {
@@ -273,16 +328,19 @@ Promise.prototype.solver = function (callback) {
               callback.apply(that, promise._answers);
             });
           });
-          promise._onResolve = [];
-          promise._onReject = [];
-          promise._onProgress = [];
+          // free the memory
+          promise._onResolve = undefined;
+          promise._onReject = undefined;
+          promise._onProgress = undefined;
         }
       },
       "notify": function () {
-        var answers = arguments;
-        promise._onProgress.forEach(function (callback) {
-          callback.apply(that, answers);
-        });
+        if (promise._onProgress) {
+          var answers = arguments;
+          promise._onProgress.forEach(function (callback) {
+            callback.apply(that, answers);
+          });
+        }
       }
     };
   }
@@ -296,12 +354,34 @@ Promise.prototype.solver = function (callback) {
   return createSolver(this);
 };
 
+////////////////////////////////////////////////////////////
+// http://wiki.commonjs.org/wiki/Promises/A
+// then(fulfilledHandler, errorHandler, progressHandler)
+
+/**
+ * then([onSuccess], [onError], [onProgress]): Promise
+ *
+ * Returns a new Promise with the return value of the `onSuccess` or `onError`
+ * callback as first parameter. If the pervious promise is resolved, the
+ * `onSuccess` callback is called. If rejected, the `onError` callback is
+ * called. If notified, `onProgress` is called.
+ *
+ *     Promise.when(1).
+ *       then(function (one) { return one + 1; }).
+ *       then(console.log); // shows 2
+ *
+ * @method then
+ * @param  {Function} [onSuccess] The callback to call on resolve
+ * @param  {Function} [onError] The callback to call on reject
+ * @param  {Function} [onProgress] The callback to call on notify
+ * @return {Promise} The new promise
+ */
 Promise.prototype.then = function (onSuccess, onError, onProgress) {
   var next = new Promise(), that = this;
   switch (this._state) {
   case "resolved":
     if (typeof onSuccess === 'function') {
-      next.solver(function (resolver) {
+      next.defer(function (resolver) {
         try {
           resolver.resolve(onSuccess.apply(that, that._answers));
         } catch (e) {
@@ -312,7 +392,7 @@ Promise.prototype.then = function (onSuccess, onError, onProgress) {
     break;
   case "rejected":
     if (typeof onError === 'function') {
-      next.solver(function (resolver) {
+      next.defer(function (resolver) {
         try {
           resolver.resolve(onError.apply(that, that._answers));
         } catch (e) {
@@ -325,7 +405,7 @@ Promise.prototype.then = function (onSuccess, onError, onProgress) {
     if (typeof onSuccess === 'function') {
       this._onResolve.push(function () {
         var answers = arguments;
-        next.solver(function (resolver) {
+        next.defer(function (resolver) {
           try {
             resolver.resolve(onSuccess.apply(that, answers));
           } catch (e) {
@@ -337,7 +417,7 @@ Promise.prototype.then = function (onSuccess, onError, onProgress) {
     if (typeof onError === 'function') {
       this._onReject.push(function () {
         var answers = arguments;
-        next.solver(function (resolver) {
+        next.defer(function (resolver) {
           try {
             resolver.resolve(onError.apply(that, answers));
           } catch (e) {
@@ -354,6 +434,51 @@ Promise.prototype.then = function (onSuccess, onError, onProgress) {
   return next;
 };
 
+////////////////////////////////////////////////////////////
+// http://wiki.commonjs.org/wiki/Promises/A
+// get(propertyName)
+
+/**
+ * get(property): Promise
+ *
+ * Get the property of the promise response as first parameter of the new
+ * Promise.
+ *
+ *     Promise.when({'a': 'b'}).get('a').then(console.log); // shows 'b'
+ *
+ * @method get
+ * @param  {String} property The object property name
+ * @return {Promise} The promise
+ */
+Promise.prototype.get = function (property) {
+  return this.then(function (dict) {
+    return dict[property];
+  });
+};
+
+////////////////////////////////////////////////////////////
+// http://wiki.commonjs.org/wiki/Promises/A
+// call(functionName, arg1, arg2, ...)
+Promise.prototype.call = function (function_name) {
+  var args = Array.prototype.slice.call(arguments, 1);
+  return this.then(function (dict) {
+    return dict[function_name].apply(dict, args);
+  });
+};
+
+/**
+ * done(callback): Promise
+ *
+ * Call the callback on resolve.
+ *
+ *     Promise.when(1).
+ *       done(function (one) { return one + 1; }).
+ *       done(console.log); // shows 1
+ *
+ * @method done
+ * @param  {Function} callback The callback to call on resolve
+ * @return {Promise} This promise
+ */
 Promise.prototype.done = function (callback) {
   var that = this;
   if (typeof callback !== 'function') {
@@ -365,6 +490,8 @@ Promise.prototype.done = function (callback) {
       callback.apply(that, that._answers);
     });
     break;
+  case "rejected":
+    break;
   default:
     this._onResolve.push(callback);
     break;
@@ -372,6 +499,19 @@ Promise.prototype.done = function (callback) {
   return this;
 };
 
+/**
+ * fail(callback): Promise
+ *
+ * Call the callback on reject.
+ *
+ *     promisedTypeError().
+ *       fail(function (e) { name_error(); }).
+ *       fail(console.log); // shows TypeError
+ *
+ * @method fail
+ * @param  {Function} callback The callback to call on reject
+ * @return {Promise} This promise
+ */
 Promise.prototype.fail = function (callback) {
   var that = this;
   if (typeof callback !== 'function') {
@@ -383,6 +523,8 @@ Promise.prototype.fail = function (callback) {
       callback.apply(that, that._answers);
     });
     break;
+  case "resolved":
+    break;
   default:
     this._onReject.push(callback);
     break;
@@ -390,6 +532,19 @@ Promise.prototype.fail = function (callback) {
   return this;
 };
 
+/**
+ * progress(callback): Promise
+ *
+ * Call the callback on notify.
+ *
+ *     Promise.delay(100, 10).
+ *       progress(function () { return null; }).
+ *       progress(console.log); // does not show null
+ *
+ * @method progress
+ * @param  {Function} callback The callback to call on notify
+ * @return {Promise} This promise
+ */
 Promise.prototype.progress = function (callback) {
   if (typeof callback !== 'function') {
     return this;
@@ -405,6 +560,20 @@ Promise.prototype.progress = function (callback) {
   return this;
 };
 
+/**
+ * always(callback): Promise
+ *
+ * Call the callback on resolve or on reject.
+ *
+ *     sayHello().
+ *       done(iAnswer).
+ *       fail(iHeardNothing).
+ *       always(iKeepWalkingAnyway);
+ *
+ * @method always
+ * @param  {Function} callback The callback to call on resolve or on reject
+ * @return {Promise} This promise
+ */
 Promise.prototype.always = function (callback) {
   var that = this;
   if (typeof callback !== 'function') {
@@ -428,7 +597,7 @@ Promise.prototype.always = function (callback) {
 
 function Deferred() {
   this._promise = new Promise();
-  this._solver = this._promise.solver();
+  this._solver = this._promise.defer();
 }
 
 Deferred.prototype.resolve = function () {
@@ -453,7 +622,7 @@ exports.Deferred = Deferred;
 // /////////////////////////////////////////////////////////////////////////////
 // // Tests
 
-// var one = new Promise().solver(function (r) {
+// var one = new Promise().defer(function (r) {
 //   r.notify(1);
 //   r.notify(2);
 //   r.resolve('a');
