@@ -2,6 +2,8 @@
 
 "use strict";
 
+// keywords: js, javascript, python sort, array
+
 /**
  * Acts like python `sort()`.
  *
