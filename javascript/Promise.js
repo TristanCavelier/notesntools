@@ -121,7 +121,8 @@ Promise.get = function (dict, property) {
 Promise.put = function (dict, property, value) {
   var p = new Promise(), solver = p.defer();
   try {
-    solver.resolve(dict[property] = value);
+    dict[property] = value;
+    solver.resolve(dict[property]);
   } catch (e) {
     solver.reject(e);
   }
@@ -153,39 +154,96 @@ Promise.execute = function (callback) {
 };
 
 /**
- * all(*items): Promise
+ * all(items): Promise
  *
- * Resolve the promise only when item are resolved. The item type must be like
- * the item parameter of the `when` static method.
+ * Resolve the promise. The item type must be like the item parameter of the
+ * `when` static method.
  *
- *     Promise.all(Promise.when('a'), 'b').then(console.log); // shows 'a b'
+ *     Promise.all([promisedError, 'b']).
+ *       then(console.log); // shows [Error, 'b']
  *
  * @method all
  * @static
- * @param  {Any} *items The items to use
+ * @param  {Array} items The items to use
  * @return {Promise} The promise
  */
-Promise.all = function () { // *promises
-  var results = [], errors = [], count = 0, max, next = new Promise(), solver;
-  max = arguments.length;
+Promise.all = function (items) {
+  var array = [], count = 0, next = new Promise(), solver;
   solver = next.defer();
-  function finished() {
-    count += 1;
-    if (count !== max) {
-      return;
-    }
-    if (errors.length > 0) {
-      return solver.reject.apply(solver, errors);
-    }
-    return solver.resolve.apply(solver, results);
+  function succeed(i) {
+    return function (answer) {
+      array[i] = answer;
+      count += 1;
+      if (count !== items.length) {
+        return;
+      }
+      return solver.resolve(array);
+    };
   }
-  Array.prototype.forEach.call(arguments, function (item, i) {
+  items.forEach(function (item, i) {
+    Promise.when(item).done(succeed(i)).fail(succeed(i));
+  });
+  return next;
+};
+
+/**
+ * allOrNone(items): Promise
+ *
+ * Resolve the promise only when all items are resolved. If one item fails, then
+ * reject. The item type must be like the item parameter of the `when` static
+ * method.
+ *
+ *     Promise.allOrNone([Promise.when('a'), 'b']).
+ *       then(console.log); // shows ['a', 'b']
+ *
+ * @method allOrNone
+ * @static
+ * @param  {Array} items The items to use
+ * @return {Promise} The promise
+ */
+Promise.allOrNone = function (items) {
+  var array = [], count = 0, next = new Promise(), solver;
+  solver = next.defer();
+  items.forEach(function (item, i) {
     Promise.when(item).done(function (answer) {
-      results[i] = answer;
-      return finished();
+      array[i] = answer;
+      count += 1;
+      if (count !== items.length) {
+        return;
+      }
+      return solver.resolve(array);
     }).fail(function (answer) {
-      errors[i] = answer;
-      return finished();
+      return solver.reject(answer);
+    });
+  });
+  return next;
+};
+
+/**
+ * any(items): Promise
+ *
+ * Resolve the promise only when one of the items is resolved. The item type
+ * must be like the item parameter of the `when` static method.
+ *
+ *     Promise.any([promisedError, Promise.delay(10)]).
+ *       then(console.log); // shows 10
+ *
+ * @method any
+ * @static
+ * @param  {Array} items The items to use
+ * @return {Promise} The promise
+ */
+Promise.any = function (items) {
+  var count = 0, next = new Promise(), solver;
+  solver = next.defer();
+  items.forEach(function (item) {
+    Promise.when(item).done(function (answer) {
+      return solver.resolve(answer);
+    }).fail(function (answer) {
+      count += 1;
+      if (count === items.length) {
+        return solver.reject(answer);
+      }
     });
   });
   return next;
@@ -302,42 +360,42 @@ Promise.prototype.defer = function (callback) {
   default:
     break;
   }
-  function createSolver(promise) {
+  function createSolver() {
     return {
       "resolve": function () {
-        if (promise._state !== "resolved" && promise._state !== "rejected") {
-          promise._state = "resolved";
-          promise._answers = arguments;
-          promise._onResolve.forEach(function (callback) {
+        if (that._state !== "resolved" && that._state !== "rejected") {
+          that._state = "resolved";
+          that._answers = arguments;
+          that._onResolve.forEach(function (callback) {
             setTimeout(function () {
-              callback.apply(that, promise._answers);
+              callback.apply(that, that._answers);
             });
           });
           // free the memory
-          promise._onResolve = undefined;
-          promise._onReject = undefined;
-          promise._onProgress = undefined;
+          that._onResolve = undefined;
+          that._onReject = undefined;
+          that._onProgress = undefined;
         }
       },
       "reject": function () {
-        if (promise._state !== "resolved" && promise._state !== "rejected") {
-          promise._state = "rejected";
-          promise._answers = arguments;
-          promise._onReject.forEach(function (callback) {
+        if (that._state !== "resolved" && that._state !== "rejected") {
+          that._state = "rejected";
+          that._answers = arguments;
+          that._onReject.forEach(function (callback) {
             setTimeout(function () {
-              callback.apply(that, promise._answers);
+              callback.apply(that, that._answers);
             });
           });
           // free the memory
-          promise._onResolve = undefined;
-          promise._onReject = undefined;
-          promise._onProgress = undefined;
+          that._onResolve = undefined;
+          that._onReject = undefined;
+          that._onProgress = undefined;
         }
       },
       "notify": function () {
-        if (promise._onProgress) {
+        if (that._onProgress) {
           var answers = arguments;
-          promise._onProgress.forEach(function (callback) {
+          that._onProgress.forEach(function (callback) {
             callback.apply(that, answers);
           });
         }
@@ -347,11 +405,11 @@ Promise.prototype.defer = function (callback) {
   this._state = "running";
   if (typeof callback === 'function') {
     setTimeout(function () {
-      callback(createSolver(that));
+      callback(createSolver());
     });
     return this;
   }
-  return createSolver(this);
+  return createSolver();
 };
 
 ////////////////////////////////////////////////////////////
@@ -703,11 +761,17 @@ exports.Deferred = Deferred;
 //   return 12;
 // }).done(onsuccess, onerror);
 
-// Promise.all(Promise.execute(function () {
-//   return 1;
-// }), Promise.execute(function () {
-//   return 2;
-// })).done(onsuccess);
+// Promise.all([Promise.execute(function () {
+//   throw new Error('lol');
+// }), Promise.delay(10)]).done(onsuccess).fail(onerror);
+
+// Promise.allOrNone([Promise.execute(function () {
+//   throw new Error('lol');
+// }), Promise.delay(10)]).done(onsuccess).fail(onerror);
+
+// Promise.any([Promise.execute(function () {
+//   throw new TypeError('lol');
+// }), Promise.delay(10)]).done(onsuccess).fail(onerror);
 
 // Promise.delay(1000, 100).done(onsuccess).progress(onprogress);
 
