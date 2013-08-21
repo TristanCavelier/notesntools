@@ -181,9 +181,8 @@ EventEmitter.prototype.emit = function (event) {
       if (this.listeners("error").length > 0) {
         this.emit("error", e);
         break;
-      } else {
-        throw e;
       }
+      throw e;
     }
   }
   return true;
