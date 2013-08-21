@@ -17,7 +17,7 @@ var my_module; // worker compatibility
   }
   if (typeof window === 'object') { // browser compatibility
     window.my_module = {};
-    module(winoow.my_module, jQuery);
+    module(window.my_module, jQuery);
   }
   my_module = {}; // worker compatibility
   module(my_module, jQuery);
