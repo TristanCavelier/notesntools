@@ -46,7 +46,7 @@ function Promise() {
 // when(value, callback, errback_opt)
 
 /**
- * when(item, [onSuccess], [onError]): Promise
+ * when(item, [onSuccess], [onError], [onProgress]): Promise
  *
  * Return an item as first parameter of the promise answer. If item is of
  * type Promise, the method will just return the promise. If item is of type
@@ -61,14 +61,14 @@ function Promise() {
  * @param  {Function} [onError] the callback called on error
  * @return {Promise} The promise
  */
-Promise.when = function (item, onSuccess, onError) {
+Promise.when = function (item, onSuccess, onError, onProgress) {
   if (item instanceof Promise) {
     return item;
   }
   if (typeof Deferred === 'function' && item instanceof Deferred) {
     return item.promise();
   }
-  var p = new Promise().done(onSuccess).fail(onError);
+  var p = new Promise().done(onSuccess).fail(onError).progress(onProgress);
   p.defer().resolve(item);
   return p;
 };
