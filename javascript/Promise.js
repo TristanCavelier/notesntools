@@ -774,6 +774,27 @@ exports.Deferred = Deferred;
 
 // ////////////////////////////////////////
 
+// // 1
+// // 3
+// // 4
+// // undefined
+// new Promise().done(function () {
+//   console.log(1);
+//   throw new Error();
+// }).fail(function () {
+//   console.log(2);
+// }).always(function () {
+//   console.log(3);
+// }).defer(function (r) {
+//   r.resolve('a');
+// }).then(function () {
+//   return Promise.when(4);
+// }).then(console.log).then(function () {
+//   throw new Error(5);
+// }).then(null, console.log).then(console.log);
+
+// ////////////////////////////////////////
+
 // function onDone(answer) {
 //   console.log('done', answer);
 // }
@@ -819,9 +840,37 @@ exports.Deferred = Deferred;
 
 // Promise.when('lol').done(onsuccess);
 
+// Promise.when('lol', onsuccess);
+
+// var p = new Deferred();
+// p.resolve('lol');
+// Promise.when(p.promise(), onsuccess, onerror)
+
+// Promise.execute(function () {
+//   throw new Error();
+// }).then(console.log).then(console.log).then(null, console.log);
+
 // Promise.execute(function () {
 //   return 12;
-// }).done(onsuccess, onerror);
+// }).then(function (a) { // 12
+//   return a + 1;
+// }).then(function (a) { //13
+//   return Promise.when(a + 1);
+// }).then(function (a) { // 14
+//   var d = new Deferred();
+//   setTimeout(function () {
+//     d.resolve(a + 1);
+//   });
+//   return d.promise();
+// }).then(function (a) { // 15
+//   var d = new Deferred();
+//   d.resolve(a + 1);
+//   return d.promise();
+// }).then(onsuccess, onerror); // 16
+
+// Promise.execute(function () {
+//   return Promise.when(12);
+// }).done(onsuccess).fail(onerror);
 
 // Promise.all([Promise.execute(function () {
 //   throw new Error('lol');
