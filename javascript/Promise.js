@@ -63,10 +63,10 @@ function Promise() {
  */
 Promise.when = function (item, onSuccess, onError, onProgress) {
   if (item instanceof Promise) {
-    return item;
+    return item.done(onSuccess).fail(onError).progress(onProgress);
   }
   if (typeof Deferred === 'function' && item instanceof Deferred) {
-    return item.promise();
+    return item.promise().done(onSuccess).fail(onError).progress(onProgress);
   }
   var p = new Promise().done(onSuccess).fail(onError).progress(onProgress);
   p.defer().resolve(item);
