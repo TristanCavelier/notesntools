@@ -59,6 +59,7 @@ function Promise() {
  * @param  {Any} item The item to use
  * @param  {Function} [onSuccess] The callback called on success
  * @param  {Function} [onError] the callback called on error
+ * @param  {Function} [onProgress] the callback called on progress
  * @return {Promise} The promise
  */
 Promise.when = function (item, onSuccess, onError, onProgress) {
