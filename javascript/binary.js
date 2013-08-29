@@ -6,33 +6,45 @@
 
 // with xhr, html5 compatible
 // Recommended!
-function ajaxGetBinaryString(url, onSuccess, onError) {
+function ajaxGetBinaryString(url, onSuccess, onError, onProgress) {
   var data = null, xhr = new XMLHttpRequest(), f = new FileReader();
   xhr.open("GET", url, true);
   xhr.responseType = "blob";
   xhr.onload = function (e) {
-    if (xhr.status >= 200 && xhr.status < 300) {
-      f.onload = function (e) {
-        onSuccess(e.target.result);
-        // just use .charCodeAt(0);
-      };
-      f.onerror = function (e) {
-        onError(e);
-      };
-      f.readAsBinaryString(xhr.response);
-    }
+    f.onload = function (e) {
+      onSuccess(e.target.result);
+      // just use .charCodeAt(0);
+    };
+    f.onerror = function (e) {
+      onError(e);
+    };
+    f.onprogress = function () {
+      onProgress((e.loaded / e.total) * 20 + 80); // between 80% and 100%
+      // don't know why it is fired 3 times at 100%
+    };
+    f.readAsBinaryString(xhr.response);
+  };
+  xhr.onerror = function (e) {
+    onError("Error " + e.target.status + " occurred during reception");
+  };
+  xhr.onprogress = function (e) {
+    onProgress((e.loaded / e.total) * 80); // between 0% and 80%
   };
   xhr.send(data);
 }
 // with xhr, html5 compatible
-function ajaxGetArrayBuffer(url, onSuccess, onError) {
+function ajaxGetArrayBuffer(url, onSuccess, onError, onProgress) {
   var data = null, xhr = new XMLHttpRequest();
   xhr.open("GET", url, true);
   xhr.responseType = "arraybuffer";
   xhr.onload = function (e) {
-    if (xhr.status >= 200 && xhr.status < 300) {
-      onSuccess(xhr.response);
-    }
+    onSuccess(xhr.response);
+  };
+  xhr.onerror = function (e) {
+    onError("Error " + e.target.status + " occurred during reception");
+  };
+  xhr.onprogress = function (e) {
+    onProgress((e.loaded / e.total) * 100); // percentage
   };
   xhr.send(data);
 }
