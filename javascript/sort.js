@@ -39,8 +39,7 @@ function sort(array, key, reverse) {
  */
 function sort(array, options) {
   var key, reverse = -1;
-  if (typeof options === 'object' &&
-      Object.getPrototypeOf(options) === Object.prototype) {
+  if (options) {
     if (options.reverse === true) {
       reverse = 1;
     }
