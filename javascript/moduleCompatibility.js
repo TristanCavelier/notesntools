@@ -13,7 +13,9 @@ var my_module; // worker compatibility
     return define(module_name, dependencies, module);
   }
   if (typeof exports === 'object') { // node js compatibility
-    module(exports, require('jquery'));
+    module(exports, require('jquery.js'));
+    // If jquery.js is in ./lib folder, then run node with:
+    //     $ NODE_PATH='./lib' node
   }
   if (typeof window === 'object') { // browser compatibility
     window.my_module = {};
