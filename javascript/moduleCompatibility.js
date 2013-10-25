@@ -7,22 +7,21 @@
 // I
 // best way to make your script compatible
 
-var my_module; // worker compatibility
 (function (module_name, dependencies, module) {
   if (typeof define === 'function' && define.amd) { // require js compatibility
     return define(module_name, dependencies, module);
   }
   if (typeof exports === 'object') { // node js compatibility
-    module(exports, require('jquery.js'));
+    return module(exports, require('jquery.js'));
     // If jquery.js is in ./lib folder, then run node with:
     //     $ NODE_PATH='./lib' node
   }
   if (typeof window === 'object') { // browser compatibility
     window.my_module = {};
-    module(window.my_module, jQuery);
+    return module(window.my_module, jQuery);
   }
-  my_module = {}; // worker compatibility
-  module(my_module, jQuery);
+  this.my_module = {}; // worker compatibility
+  return module(this.my_module, jQuery);
 }('my_module', ['exports', 'jQuery'], function (exports, $) {
 
   // module definition
