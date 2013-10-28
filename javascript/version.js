@@ -2,22 +2,6 @@
 "use strict";
 
 /**
- * Returns the number with the lowest value
- *
- * @param  {Number} *values The values to compare
- * @return {Number} The minimum
- */
-function min() {
-  var i, val;
-  for (i = 1; i < arguments.length; i += 1) {
-    if (val === undefined || val > arguments[i]) {
-      val = arguments[i];
-    }
-  }
-  return val;
-}
-
-/**
  * Splits the version into an array of numbers and separators
  *
  * @param {String} str The string to split
@@ -52,7 +36,7 @@ function compareVersion(a, b) {
   var i, l;
   a = versionSplit(a);
   b = versionSplit(b);
-  l = min(a.length, b.length);
+  l = Math.min(a.length, b.length);
   for (i = 0; i < l; i += 1) {
     if (a[i] < b[i]) {
       return -1;
@@ -72,6 +56,11 @@ function compareVersion(a, b) {
 
 //////////////////////////////////////////////////////////////////////
 // Tests
-
-console.log(compareVersion('1.9.3ab', '1.10.3ab') === -1);
-console.log(['1.10.3c', null, '', '1.9.3ab', '1.10.3'].sort(compareVersion));
+if (!module.parent) {
+  console.log(compareVersion('1.9.3ab', '1.10.3ab') === -1);
+  console.log(
+    JSON.stringify(['1.10.3c', null, '', '1.9.3ab', '1.10.3'].
+                   sort(compareVersion)) ===
+      JSON.stringify([null, '', '1.9.3ab', '1.10.3', '1.10.3c'])
+  ); // false !!!
+}
