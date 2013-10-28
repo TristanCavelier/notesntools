@@ -1,0 +1,30 @@
+(function (root, dependencies, factory) {
+  if (typeof define === 'function' && define.amd) {
+    define(dependencies, factory);
+  } else {
+    root.mylib = factory(jQuery);
+  }
+}(this, ["jquery"], function ($) {
+
+  function require(name) {
+    return require.libs[name];
+  }
+  require.libs = {"require": require};
+
+  function define(name, dependencies, factory) {
+    require.libs[name] = factory(require);
+  }
+
+  // // try to use this function if the above define function does not work
+  // function define(name, dependencies, factory) {
+  //   var args = [], i;
+  //   for (i = 0; i < dependencies.length; i += 1) {
+  //     args.push(require.libs[dependencies[i]]);
+  //   }
+  //   require.libs[name] = factory.apply(null, args);
+  // }
+
+  define('../lib/jquery', [], function () {
+    return $;
+  });
+  // or require.libs["../lib/jquery"] = $;
