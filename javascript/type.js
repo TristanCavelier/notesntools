@@ -15,10 +15,10 @@ function type(value) {
 }
 
 exports.type = type;
-
 ////////////////////////////////////////////////////////////////////////////////
 // Tests
-
-console.log("type():", type({}) === "object");
-console.log("type():", type("") === "string");
-console.log("type():", type([]) === "array")
+if (!module.parent) {
+  console.log("type():", type({}) === "object");
+  console.log("type():", type("") === "string");
+  console.log("type():", type([]) === "array");
+}
