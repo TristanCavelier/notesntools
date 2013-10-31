@@ -52,7 +52,7 @@ function Emitter() {
 Emitter.prototype.on = function (eventName, callback) {
   //////////////////////////////
   // // Check parameters
-  // if (typeof callback === "function") {
+  // if (typeof callback !== "function") {
   //   return;
   // }
   //////////////////////////////
@@ -90,7 +90,7 @@ Emitter.prototype.on = function (eventName, callback) {
 Emitter.prototype.once = function (eventName, callback) {
   //////////////////////////////
   // // Check parameters
-  // if (typeof callback === "function") {
+  // if (typeof callback !== "function") {
   //   return;
   // }
   //////////////////////////////
