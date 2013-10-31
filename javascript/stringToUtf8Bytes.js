@@ -1,3 +1,5 @@
+/*jslint indent: 2, maxlen: 80, sloppy: true */
+
 /**
  * Converts a string into a Utf8 raw string (0 <= char <= 255)
  *
@@ -5,6 +7,7 @@
  * @return {String} Utf8 byte string
  */
 function stringToUtf8ByteString(input) {
+  /*jslint bitwise: true */
   var output = "", i, x, y, l = input.length;
 
   for (i = 0; i < l; i += 1) {
@@ -49,6 +52,7 @@ function stringToUtf8ByteString(input) {
  * @return {Array} Array of octets (number)
  */
 function stringToUtf8ByteArray(input) {
+  /*jslint bitwise: true */
   var output = [], i, x, y, l = input.length;
 
   for (i = 0; i < l; i += 1) {

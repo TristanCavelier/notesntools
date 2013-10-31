@@ -1,3 +1,5 @@
+/*jslint indent: 2, maxlen: 80, sloppy: true */
+
 /**
  * Converts a Utf8 raw string (0 <= char <= 255) into a real string
  *
@@ -5,6 +7,7 @@
  * @return {String} Real string
  */
 function utf8ByteStringToString(input) {
+  /*jslint bitwise: true */
   var output = "", i, x, l = input.length;
 
   for (i = 0; i < l; i += 1) {
@@ -22,7 +25,7 @@ function utf8ByteStringToString(input) {
       x = x | (
         i < l ? input.charCodeAt(i) & 0x3F : 0
       );
-      if (0x10000 <= x <= 0x10FFFF) {
+      if (0x10000 <= x && x <= 0x10FFFF) {
         output += String.fromCharCode(
           (((x - 0x10000) >>> 10) & 0x03FF) | 0xD800,
           (x & 0x03FF) | 0xDC00
@@ -58,6 +61,7 @@ function utf8ByteStringToString(input) {
  * @return {String} Real string
  */
 function utf8ByteArrayToString(input) {
+  /*jslint bitwise: true */
   var output = "", i, x, l = input.length;
 
   for (i = 0; i < l; i += 1) {
@@ -75,7 +79,7 @@ function utf8ByteArrayToString(input) {
       x = x | (
         i < l ? input[i] & 0x3F : 0
       );
-      if (0x10000 <= x <= 0x10FFFF) {
+      if (0x10000 <= x && x <= 0x10FFFF) {
         output += String.fromCharCode(
           (((x - 0x10000) >>> 10) & 0x03FF) | 0xD800,
           (x & 0x03FF) | 0xDC00
