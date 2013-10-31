@@ -58,50 +58,50 @@ var ipv6_re_str =
   no_slash_protocol_re_str = "([a-zA-Z]+:)",
   protocol_re_str = "([a-zA-Z]+:(?://)?)",
   user_password_re_str =
-    "(?:(" +
-    "(?:%[0-9a-fA-F][0-9a-fA-F]|[\\-a-zA-Z0-9\\._~!\\$&'\\(\\)\\*\\+,;=@])+" +
-    "(?::" +
-    "(?:%[0-9a-fA-F][0-9a-fA-F]|[\\-a-zA-Z0-9\\._~!\\$&'\\(\\)\\*\\+,;=:@])+" +
-    ")?" +
-    ")@)?",
+  "(?:(" +
+  "(?:%[0-9a-fA-F][0-9a-fA-F]|[\\-a-zA-Z0-9\\._~!\\$&'\\(\\)\\*\\+,;=@])+" +
+  "(?::" +
+  "(?:%[0-9a-fA-F][0-9a-fA-F]|[\\-a-zA-Z0-9\\._~!\\$&'\\(\\)\\*\\+,;=:@])+" +
+  ")?" +
+  ")@)?",
   host_name_re_str =
-    "(" +
-    "(?:%[0-9a-fA-F][0-9a-fA-F]|[\\-a-zA-Z0-9\\._~!\\$&'\\(\\)\\*\\+,;=@])+" +
-    "|\\[" + ipv6_re_str + "\\]" +
-    ")",
+  "(" +
+  "(?:%[0-9a-fA-F][0-9a-fA-F]|[\\-a-zA-Z0-9\\._~!\\$&'\\(\\)\\*\\+,;=@])+" +
+  "|\\[" + ipv6_re_str + "\\]" +
+  ")",
   port_re_str =
-    "(?::([0-9]+))?",
+  "(?::([0-9]+))?",
   path_name_re_str =
-    "(" +
-    "(?:%[0-9a-fA-F][0-9a-fA-F]|[/\\-a-zA-Z0-9\\._~!\\$&'\\(\\)\\*\\+,;=:@])+" +
-    ")?",
+  "(" +
+  "(?:%[0-9a-fA-F][0-9a-fA-F]|[/\\-a-zA-Z0-9\\._~!\\$&'\\(\\)\\*\\+,;=:@])+" +
+  ")?",
   search_re_str =
-    "(\\?" +
-    "(?:%[0-9a-fA-F][0-9a-fA-F]|" +
-    "[/\\-a-zA-Z0-9\\._~!\\$'\\(\\)\\*\\+\\?,;=:@])+" +
-    "(?:&" +
-    "(?:%[0-9a-fA-F][0-9a-fA-F]|" +
-    "[/\\-a-zA-Z0-9\\._~!\\$'\\(\\)\\*\\+\\?,;=:@])+" +
-    ")*" +
-    ")?",
+  "(\\?" +
+  "(?:%[0-9a-fA-F][0-9a-fA-F]|" +
+  "[/\\-a-zA-Z0-9\\._~!\\$'\\(\\)\\*\\+\\?,;=:@])+" +
+  "(?:&" +
+  "(?:%[0-9a-fA-F][0-9a-fA-F]|" +
+  "[/\\-a-zA-Z0-9\\._~!\\$'\\(\\)\\*\\+\\?,;=:@])+" +
+  ")*" +
+  ")?",
   hash_re_str =
-    "(#" +
-    "(?:%[0-9a-fA-F][0-9a-fA-F]|" +
-    "[/\\-a-zA-Z0-9\\._~!\\$&'\\(\\)\\*\\+\\?,;=:@])+" +
-    ")?",
+  "(#" +
+  "(?:%[0-9a-fA-F][0-9a-fA-F]|" +
+  "[/\\-a-zA-Z0-9\\._~!\\$&'\\(\\)\\*\\+\\?,;=:@])+" +
+  ")?",
   url_re = new RegExp(
     "^(?:" + protocol_re_str + user_password_re_str + host_name_re_str +
       port_re_str + ")?" + path_name_re_str + search_re_str + hash_re_str + "$"
   ),
 
   query_re_str =
-    "(" +
-    "(?:%[0-9a-fA-F][0-9a-fA-F]|" +
-    "[/\\-a-zA-Z0-9\\._~!\\$'\\(\\)\\*\\+\\?,;:@])+" +
-    ")(?:=(" +
-    "(?:%[0-9a-fA-F][0-9a-fA-F]|" +
-    "[/\\-a-zA-Z0-9\\._~!\\$'\\(\\)\\*\\+\\?,;=:@])+" +
-    "))?",
+  "(" +
+  "(?:%[0-9a-fA-F][0-9a-fA-F]|" +
+  "[/\\-a-zA-Z0-9\\._~!\\$'\\(\\)\\*\\+\\?,;:@])+" +
+  ")(?:=(" +
+  "(?:%[0-9a-fA-F][0-9a-fA-F]|" +
+  "[/\\-a-zA-Z0-9\\._~!\\$'\\(\\)\\*\\+\\?,;=:@])+" +
+  "))?",
   query_re = new RegExp(query_re_str);
 
 /**
@@ -137,6 +137,7 @@ function parse(url_str, parse_query_string) {
   if (parse_query_string) {
     url_obj.query = {};
     search = url_obj.search;
+    /*jslint ass: true */
     while ((query = query_re.exec(search)) !== null) {
       url_obj.query[decodeURI(query[1]).replace(/%26/g, '&')] =
         decodeURI(query[2] || "").replace(/%26/g, '&');
@@ -160,7 +161,7 @@ function format(url_obj) {
   result += (url_obj.auth && url_obj.auth + "@") || "";
   result += url_obj.host || (url_obj.hostname || "") + (url_obj.port || "");
   if (url_obj.pathname === 'string' && url_obj.pathname[0] !== "/" &&
-    result !== url_obj.protocol && result.slice(-1) !== "/") {
+      result !== url_obj.protocol && result.slice(-1) !== "/") {
     result += "/";
   }
   result += url_obj.pathname || '';
