@@ -8,7 +8,7 @@
  * @return {Boolean} true if success, else false
  */
 function isDate(date) {
-  if (!isNaN((new Date(date)).getTime())) {
+  if (!isNaN((new Date(date === null ? undefined : date)).getTime())) {
     return true;
   }
   return false;
@@ -20,4 +20,9 @@ if (!module.parent) {
   console.log(isDate('2013') === true);
   console.log(isDate(new Date('2013')) === true);
   console.log(isDate(1234) === true);
+
+  console.log(isDate(new Date('lolol')) === false);
+  console.log(isDate('lolol') === false);
+  console.log(isDate(null) === false);
+  console.log(isDate() === false);
 }
