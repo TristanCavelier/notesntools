@@ -15,7 +15,11 @@
  */
 function arrayIndexOf(array, value, from) {
   var index, length = array.length;
-  for (index = from || 0; index < length; index += 1) {
+  from = from || 0;
+  if (from < 0) {
+    from += length;
+  }
+  for (index = from; index < length; index += 1) {
     if (array[index] === value) {
       return index;
     }
@@ -24,4 +28,4 @@ function arrayIndexOf(array, value, from) {
 }
 
 //////////////////////////////////////////////////////////////////////
-exports.arrayIndexOf = arrayIndexOf;
+module.exports = arrayIndexOf;
