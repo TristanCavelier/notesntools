@@ -51,10 +51,16 @@ function Emitter() {
  */
 Emitter.prototype.on = function (eventName, callback) {
   //////////////////////////////
-  // // Check parameters
-  // if (typeof callback !== "function") {
-  //   return;
-  // }
+  // Check parameters
+  if (arguments.length < 2) {
+    throw new TypeError("Not enough arguments to Emitter.on");
+  }
+  if (typeof callback !== "function") {
+    //////////////////////////////
+    // throw new TypeError('callback argument is not of type function');
+    return;
+    //////////////////////////////
+  }
   //////////////////////////////
 
   // assign callback to event
@@ -64,11 +70,11 @@ Emitter.prototype.on = function (eventName, callback) {
 };
 
 //////////////////////////////
-// // for nodejs EventEmitter compatibility
-// Emitter.prototype.addListener = Emitter.prototype.on;
+// for nodejs EventEmitter compatibility
+Emitter.prototype.addListener = Emitter.prototype.on;
 //////////////////////////////
-// // for html5 EventTarget compatibility
-// Emitter.prototype.addEventListener = Emitter.prototype.on;
+// for html5 EventTarget compatibility
+Emitter.prototype.addEventListener = Emitter.prototype.on;
 //////////////////////////////
 
 //////////////////////////////
@@ -89,10 +95,16 @@ Emitter.prototype.on = function (eventName, callback) {
  */
 Emitter.prototype.once = function (eventName, callback) {
   //////////////////////////////
-  // // Check parameters
-  // if (typeof callback !== "function") {
-  //   return;
-  // }
+  // Check parameters
+  if (arguments.length < 2) {
+    throw new TypeError("Not enough arguments to Emitter.once");
+  }
+  if (typeof callback !== "function") {
+    //////////////////////////////
+    // throw new TypeError('callback argument is not of type function');
+    return;
+    //////////////////////////////
+  }
   //////////////////////////////
 
   // assign callback to event
@@ -120,12 +132,13 @@ Emitter.prototype.emit = function (eventName) {
   //////////////////////////////
 
   //////////////////////////////
-  // // for html5 EventTarget compatibility
-  // if (this.hasOwnProperty('on' + eventName) &&
-  //     typeof this['on' + eventName] === "function") {
-  //   funs = funs || [];
-  //   funs.before = this['on' + eventName];
-  // }
+  // for html5 EventTarget compatibility
+  // add property 'on' + eventName on function list
+  if (this.hasOwnProperty('on' + eventName) &&
+      typeof this['on' + eventName] === "function") {
+    funs = funs || [];
+    funs.before = this['on' + eventName];
+  }
   //////////////////////////////
 
   if (funs) {
@@ -140,77 +153,79 @@ Emitter.prototype.emit = function (eventName) {
     //////////////////////////////
 
     //////////////////////////////
-    // // clean this._events
-    // if (this._events[eventName].length === 0) {
-    //   delete this._events[eventName];
-    // }
-    // i = undefined;
-    // for (i in this._events) {
-    //   if (this._events.hasOwnProperty(i)) {
-    //     break;
-    //   }
-    // }
-    // if (i === undefined) {
-    //   delete this._events;
-    // }
+    // clean this._events
+    if (this._events) {
+      if (this._events[eventName].length === 0) {
+        delete this._events[eventName];
+      }
+      i = undefined;
+      for (i in this._events) {
+        if (this._events.hasOwnProperty(i)) {
+          break;
+        }
+      }
+      if (i === undefined) {
+        delete this._events;
+      }
+    }
     //////////////////////////////
 
     args = Array.prototype.slice.call(arguments, 1);
 
     //////////////////////////////
-    // // for html5 EventTarget compatibility
-    // if (funs.before) {
-    //   // no try catch wraps listeners on EventTarget API
-    //   funs.before.apply(null, args);
-    // }
+    // for html5 EventTarget compatibility
+    if (funs.before) {
+      // no try catch wraps listeners on EventTarget API
+      funs.before.apply(null, args);
+    }
     //////////////////////////////
 
     // call funs
     for (i = 0; i < funs.length; i += 1) {
+      /*jslint continue: true */
+
       //////////////////////////////
-      // security- fast+ if `once` method exists
-      ((funs[i] || {}).callback || funs[i]).apply(null, args);
-      // // security- fast+ if `once` method doesn't exist
-      // funs[i].apply(null, args);
-      // // security+ fast-
-      // var callback = ((funs[i] || {}).callback || funs[i]);
-      // if (typeof callback === "function") {
-      //   callback.apply(null, args);
-      // }
-      // // security++ fast-- propagate thrown error to 'error' event
-      // var callback = ((funs[i] || {}).callback || funs[i]);
-      // if (typeof callback === "function") {
-      //   try {
-      //     callback.apply(null, args);
-      //   } catch (e) {
-      //     if (this._events.error) {
-      //       this.emit('error', e);
-      //     } else {
-      //       throw e;
-      //     }
-      //   }
-      // }
+      // try catch block
+      // - security++ fast--
+      // - propagate error to 'error' event
+      // - can be deleted
       //////////////////////////////
+      try {
+        if (typeof funs[i] === 'function') {
+          funs[i].apply(null, args);
+          continue;
+        }
+
+        //////////////////////////////
+        // // security+ fast-
+        // if (!funs[i] || typeof funs[i].callback !== 'function') {
+        //   continue;
+        // }
+        //////////////////////////////
+
+        //////////////////////////////
+        // can be dead code if `once` or `addEventListener` are not impl
+        funs[i].callback.apply(null, args);
+        //////////////////////////////
+
+      } catch (e) {
+        if (eventName !== 'error' && this._events.error) {
+          // propagate to 'error' event
+          this.emit('error', e);
+        } else {
+          throw e;
+        }
+      }
     }
   }
 };
 
 //////////////////////////////
-// // for other compatibility
-// Emitter.prototype.trigger = Emitter.prototype.emit
+// for other compatibility
+Emitter.prototype.trigger = Emitter.prototype.emit;
 //////////////////////////////
-// // for html5 EventTarget compatibility (actually not used)
-// function EventArgs(name) {
-//   this.name = name;
-//   this.type = 'arguments';
-//   this.arguments = Array.prototype.slice.call(arguments, 1);
-// }
-// exports.EventArgs = EventArgs;
-// Emitter.prototype.dispatchEvent = function (eventObject) {
-//   var name = eventObject.name;
-//   delete eventObject.name;
-//   this.emit(name, {"target": eventObject});
-// };
+// for html5 compatibility
+Emitter.prototype.dispatchEvent = Emitter.prototype.emit;
 //////////////////////////////
 
 //////////////////////////////
@@ -238,11 +253,13 @@ Emitter.prototype.off = function (eventName, callback) {
 
   if (funs) {
     for (i = 0; i < funs.length; i += 1) {
-      //////////////////////////////
       // remove callback reference
-      // if `once` method exists
-      if (((funs[i] || {}).callback || funs[i]) === callback) {
-        // // if `once` method doesn't exists
+      //////////////////////////////
+      // if `once` or `addEventListener` are implemented
+      if (funs[i] === callback || (funs[i] && funs[i].callback === callback)) {
+        // or security- fast+
+        // if (funs[i] === callback || funs[i].callback === callback) {
+        // overwise
         // if (funs[i] === callback) {
         //////////////////////////////
         funs.splice(i, 1);
@@ -251,30 +268,30 @@ Emitter.prototype.off = function (eventName, callback) {
     }
 
     //////////////////////////////
-    // // clean this._events
-    // if (this._events[eventName].length === 0) {
-    //   delete this._events[eventName];
-    // }
-    // i = undefined;
-    // for (i in this._events) {
-    //   if (this._events.hasOwnProperty(i)) {
-    //     break;
-    //   }
-    // }
-    // if (i === undefined) {
-    //   delete this._events;
-    // }
+    // clean this._events
+    if (this._events[eventName].length === 0) {
+      delete this._events[eventName];
+    }
+    i = undefined;
+    for (i in this._events) {
+      if (this._events.hasOwnProperty(i)) {
+        break;
+      }
+    }
+    if (i === undefined) {
+      delete this._events;
+    }
     //////////////////////////////
 
   }
 };
 
 //////////////////////////////
-// // For nodejs EventEmitter compatibility
-// Emitter.prototype.removeListener = Emitter.prototype.off;
+// For nodejs EventEmitter compatibility
+Emitter.prototype.removeListener = Emitter.prototype.off;
 //////////////////////////////
-// // For html5 EventTarget compatibility
-// Emitter.prototype.removeEventListener = Emitter.prototype.off;
+// For html5 EventTarget compatibility
+Emitter.prototype.removeEventListener = Emitter.prototype.off;
 //////////////////////////////
 
 //////////////////////////////
@@ -300,26 +317,27 @@ Emitter.prototype.reset = function () {
 };
 
 //////////////////////////////
-// // for nodejs EventEmitter compatibility
-// Emitter.prototype.removeAllListeners = function (name) {
-//   if (name === undefined) {
-//     delete this._events;
-//   } else if (this._events) {
-//     delete this._events[name];
-//     //////////////////////////////
-//     // // clean this._events
-//     // var i;
-//     // for (i in this._events) {
-//     //   if (this._events.hasOwnProperty(i)) {
-//     //     break;
-//     //   }
-//     // }
-//     // if (i === undefined) {
-//     //   delete this._events;
-//     // }
-//     //////////////////////////////
-//   }
-// };
+// for nodejs EventEmitter compatibility
+Emitter.prototype.removeAllListeners = function (name) {
+  if (name === undefined) {
+    delete this._events;
+  } else if (this._events) {
+    delete this._events[name];
+
+    //////////////////////////////
+    // clean this._events
+    var i;
+    for (i in this._events) {
+      if (this._events.hasOwnProperty(i)) {
+        break;
+      }
+    }
+    if (i === undefined) {
+      delete this._events;
+    }
+    //////////////////////////////
+  }
+};
 //////////////////////////////
 
 //////////////////////////////
@@ -328,23 +346,22 @@ Emitter.prototype.reset = function () {
 // - can be deleted
 //////////////////////////////
 
-// Emitter.prototype.listeners = function (name) {
-//   //////////////////////////////
-//   // security- fast+
-//   return (this._events && this._events[name]) || [];
-//   // // security+ fast-
-//   // return (this._events && Array.isArray(this._events[name]) &&
-//   //         this._events[name]) || [];
-//   // // security++ fast--
-//   // try {
-//   //   if (Array.isArray(this._events[name]) {
-//   //     return this._events[name];
-//   //   }
-//   // } catch (ignore) {}
-//   // return [];
-//   //////////////////////////////
-// };
-
+Emitter.prototype.listeners = function (name) {
+  //////////////////////////////
+  // security- fast+
+  return (this._events && this._events[name]) || [];
+  // // security+ fast-
+  // return (this._events && Array.isArray(this._events[name]) &&
+  //         this._events[name]) || [];
+  // // security++ fast--
+  // try {
+  //   if (Array.isArray(this._events[name]) {
+  //     return this._events[name];
+  //   }
+  // } catch (ignore) {}
+  // return [];
+  //////////////////////////////
+};
 
 // function bind(method) {
 //   return function (emitter) {
@@ -363,16 +380,13 @@ Emitter.prototype.reset = function () {
 // Emitter.reset = bind('reset');
 // Emitter.clear = bind('clear');
 //////////////////////////////
-// // for nodejs EventEmitter compatibily
-// Emitter.listenerCount = function (emitter, name) {
-//   //////////////////////////////
-//   // security- fast+
-//   return Emitter.prototype.listeners.call(emitter, name).length;
-//   //////////////////////////////
-// };
+// for nodejs EventEmitter compatibily
+Emitter.listenerCount = function (emitter, name) {
+  return Emitter.prototype.listeners.call(emitter, name).length;
+};
 //////////////////////////////
 
-exports.Emitter = Emitter;
+module.exports = Emitter;
 
 // UNIT TESTS
 if (!module.parent) {
@@ -429,20 +443,25 @@ if (!module.parent) {
     console.log(expected.shift() === 'sep');
     console.log(expected.length === 0);
 
-    //   // html listener assignment tests
-    //   console.log("----- html style listener assignment tests");
-    //   expected = ['onevent hey', 'sep', 'onevent hoo', 'sep', 'sep'];
-    //   e = new Emitter();
-    //   e.onevent = function (p) {
-    //     console.log(expected.shift() === 'onevent ' + p);
-    //   };
-    //   e.emit('event', "hey");
-    //   console.log(expected.shift() === 'sep');
-    //   e.emit('event', "hoo");
-    //   console.log(expected.shift() === 'sep');
-    //   delete e.onevent;
-    //   e.emit('event', "hoo");
-    //   console.log(expected.shift() === 'sep');
-    //   console.log(expected.length === 0);
+    // html listener assignment tests
+    console.log("----- html style listener assignment tests");
+    expected = ['onevent hey', 'adl hey', 'sep', 'onevent hoo', 'sep', 'sep'];
+    e = new Emitter();
+    f = function (p) {
+      console.log(expected.shift() === 'adl ' + p);
+    };
+    e.addEventListener('event', f);
+    e.onevent = function (p) {
+      console.log(expected.shift() === 'onevent ' + p);
+    };
+    e.emit('event', "hey");
+    e.removeEventListener('event', f);
+    console.log(expected.shift() === 'sep');
+    e.emit('event', "hoo");
+    console.log(expected.shift() === 'sep');
+    delete e.onevent;
+    e.emit('event', "hoo");
+    console.log(expected.shift() === 'sep');
+    console.log(expected.length === 0);
   }());
 }
