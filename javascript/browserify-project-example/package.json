@@ -1,0 +1,20 @@
+{
+  "name": "mylib",
+  "version": "0.1.0",
+  "description": "browserify example with grunt",
+  "main": "src/mylib.js",
+  "scripts": {
+    "test": "grunt test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://here"
+  },
+  "author": "Tristan Cavelier <t.cavelier@free.fr>",
+  "devDependencies": {
+    "grunt-jslint": "~1.1.x",
+    "grunt-contrib-uglify": "~0.2.x",
+    "grunt-contrib-concat": "~0.3.x",
+    "grunt-browserify": "~1.2.x"
+  }
+}
