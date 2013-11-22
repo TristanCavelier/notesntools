@@ -1,249 +1,295 @@
-/*jslint indent: 2, maxlen: 80, nomen: true */
-"use strict";
+// Copyright Joyent, Inc. and other Node contributors.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to permit
+// persons to whom the Software is furnished to do so, subject to the
+// following conditions:
+//
+// The above copyright notice and this permission notice shall be included
+// in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+// USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-// keywords: js, javascript, nodejs events.EventEmitter
-
-/**
- * Inspired by nodejs EventEmitter class
- * http://nodejs.org/api/events.html
- *
- * When an EventEmitter instance experiences an error, the typical action is
- * to emit an 'error' event. Error events are treated as a special case in
- * node. If there is no listener for it, then the default action throws the
- * exception again.
- *
- * All EventEmitters emit the event 'newListener' when new listeners are added
- * and 'removeListener' when a listener is removed.
- *
- * @class EventEmitter
- * @constructor
- */
+//////////////////////////////
+// There is no need to import full `util` module
+var util = {
+  "isNumber": function (arg) {
+    return typeof arg === 'number';
+  },
+  "isObject": function (arg) {
+    return typeof arg === 'object' && arg;
+  },
+  "isFunction": function (arg) {
+    return typeof arg === 'function';
+  },
+  "isUndefined": function (arg) {
+    return arg === void 0;
+  }
+};
+//////////////////////////////
 function EventEmitter() {
-  this._events = {};
-  this._maxListeners = 10;
+  this._events = this._events || {};
+  this._maxListeners = this._maxListeners || undefined;
 }
+module.exports = EventEmitter;
 
-/**
- * Adds a listener to the end of the listeners array for the specified
- * event.
- *
- * @method addListener
- * @param  {String} event The event name
- * @param  {Function} listener The listener callback
- * @return {EventEmitter} This emitter
- */
-EventEmitter.prototype.addListener = function (event, listener) {
-  var listener_list;
-  if (typeof listener !== "function") {
-    return this;
-  }
-  this.emit("newListener", event, listener);
-  listener_list = this._events[event];
-  if (listener_list === undefined) {
-    this._events[event] = listener;
-    listener_list = listener;
-  } else if (typeof listener_list === "function") {
-    this._events[event] = [listener_list, listener];
-    listener_list = this._events[event];
-  } else {
-    listener_list[listener_list.length] = listener;
-  }
-  if (this._maxListeners > 0 &&
-      typeof listener_list !== "function" &&
-      listener_list.length > this._maxListeners &&
-      listener_list.warned !== true) {
-    console.warn("warning: possible EventEmitter memory leak detected. " +
-                 listener_list.length + " listeners added. " +
-                 "Use emitter.setMaxListeners() to increase limit.");
-    listener_list.warned = true;
-  }
+// Backwards-compat with node 0.10.x
+EventEmitter.EventEmitter = EventEmitter;
+
+EventEmitter.prototype._events = undefined;
+EventEmitter.prototype._maxListeners = undefined;
+
+// By default EventEmitters will print a warning if more than 10 listeners are
+// added to it. This is a useful default which helps finding memory leaks.
+EventEmitter.defaultMaxListeners = 10;
+
+// Obviously not all Emitters should be limited to 10. This function allows
+// that to be increased. Set to zero for unlimited.
+EventEmitter.prototype.setMaxListeners = function(n) {
+  if (!util.isNumber(n) || n < 0)
+    throw TypeError('n must be a positive number');
+  this._maxListeners = n;
   return this;
 };
 
-/**
- * #crossLink "EventEmitter/addListener:method"
- *
- * @method on
- */
-EventEmitter.prototype.on = EventEmitter.prototype.addListener;
+EventEmitter.prototype.emit = function(type) {
+  var er, handler, len, args, i, listeners;
 
-/**
- * Adds a one time listener for the event. This listener is invoked only the
- * next time the event is fired, after which it is removed.
- *
- * @method once
- * @param  {String} event The event name
- * @param  {Function} listener The listener callback
- * @return {EventEmitter} This emitter
- */
-EventEmitter.prototype.once = function (event, listener) {
-  var that = this, wrapper = function () {
-    that.removeListener(event, wrapper);
-    listener.apply(that, arguments);
-  };
-  wrapper.original = listener;
-  return that.on(event, wrapper);
-};
+  if (!this._events)
+    this._events = {};
 
-/**
- * Remove a listener from the listener array for the specified event.
- * Caution: changes array indices in the listener array behind the listener
- *
- * @method removeListener
- * @param  {String} event The event name
- * @param  {Function} listener The listener callback
- * @return {EventEmitter} This emitter
- */
-EventEmitter.prototype.removeListener = function (event, listener) {
-  var listener_list = this._events[event], i;
-  if (listener_list) {
-    if (typeof listener_list === "function") {
-      if (listener_list === listener || listener_list.original === listener) {
-        delete this._events[event];
+  // If there is no 'error' event listener then throw.
+  if (type === 'error') {
+    if (!this._events.error ||
+        (util.isObject(this._events.error) && !this._events.error.length)) {
+      er = arguments[1];
+      if (er instanceof Error) {
+        throw er; // Unhandled 'error' event
+      } else {
+        throw TypeError('Uncaught, unspecified "error" event.');
       }
-      return this;
-    }
-    for (i = 0; i < listener_list.length; i += 1) {
-      if (listener_list[i] === listener ||
-          listener_list[i].original === listener) {
-        listener_list.splice(i, 1);
-        this.emit("removeListener", event, listener);
-        break;
-      }
-    }
-    if (listener_list.length === 1) {
-      this._events[event] = listener_list[0];
-    }
-    if (listener_list.length === 0) {
-      this._events[event] = undefined;
+      return false;
     }
   }
-  return this;
-};
 
-/**
- * Removes all listeners, or those of the specified event.
- *
- * @method removeAllListeners
- * @param  {String} event The event name (optional)
- * @return {EventEmitter} This emitter
- */
-EventEmitter.prototype.removeAllListeners = function (event) {
-  var key;
-  if (event === undefined) {
-    for (key in this._events) {
-      if (this._events.hasOwnProperty(key)) {
-        delete this._events[key];
-      }
-    }
-    return this;
-  }
-  delete this._events[event];
-  return this;
-};
+  handler = this._events[type];
 
-/**
- * By default EventEmitters will print a warning if more than 10 listeners
- * are added for a particular event. This is a useful default which helps
- * finding memory leaks. Obviously not all Emitters should be limited to 10.
- * This function allows that to be increased. Set to zero for unlimited.
- *
- * @method setMaxListeners
- * @param  {Number} max_listeners The maximum of listeners
- */
-EventEmitter.prototype.setMaxListeners = function (max_listeners) {
-  this._maxListeners = max_listeners;
-};
-
-/**
- * Execute each of the listeners in order with the supplied arguments.
- *
- * @method emit
- * @param  {String} event The event name
- * @param  {Any} [args]* The listener argument to give
- * @return {Boolean} true if event had listeners, false otherwise.
- */
-EventEmitter.prototype.emit = function (event) {
-  var i, argument_list, listener_list;
-  listener_list = this._events[event];
-  if (typeof listener_list === 'function') {
-    listener_list = [listener_list];
-  } else if (Array.isArray(listener_list)) {
-    listener_list = listener_list.slice();
-  } else {
+  if (util.isUndefined(handler))
     return false;
-  }
-  argument_list = Array.prototype.slice.call(arguments, 1);
-  for (i = 0; i < listener_list.length; i += 1) {
-    try {
-      listener_list[i].apply(this, argument_list);
-    } catch (e) {
-      if (this.listeners("error").length > 0) {
-        this.emit("error", e);
+
+  if (util.isFunction(handler)) {
+    switch (arguments.length) {
+      // fast cases
+      case 1:
+        handler.call(this);
         break;
-      }
-      throw e;
+      case 2:
+        handler.call(this, arguments[1]);
+        break;
+      case 3:
+        handler.call(this, arguments[1], arguments[2]);
+        break;
+      // slower
+      default:
+        len = arguments.length;
+        args = new Array(len - 1);
+        for (i = 1; i < len; i++)
+          args[i - 1] = arguments[i];
+        handler.apply(this, args);
     }
+  } else if (util.isObject(handler)) {
+    len = arguments.length;
+    args = new Array(len - 1);
+    for (i = 1; i < len; i++)
+      args[i - 1] = arguments[i];
+
+    listeners = handler.slice();
+    len = listeners.length;
+    for (i = 0; i < len; i++)
+      listeners[i].apply(this, args);
   }
+
   return true;
 };
 
-/**
- * Returns an array of listeners for the specified event.
- *
- * @method listeners
- * @param  {String} event The event name
- * @return {Array} The array of listeners
- */
-EventEmitter.prototype.listeners = function (event) {
-  return (typeof this._events[event] === 'function' ?
-          [this._events[event]] : (this._events[event] || []).slice());
+EventEmitter.prototype.addListener = function(type, listener) {
+  var m;
+
+  if (!util.isFunction(listener))
+    throw TypeError('listener must be a function');
+
+  if (!this._events)
+    this._events = {};
+
+  // To avoid recursion in the case that type === "newListener"! Before
+  // adding it to the listeners, first emit "newListener".
+  if (this._events.newListener)
+    this.emit('newListener', type,
+              util.isFunction(listener.listener) ?
+              listener.listener : listener);
+
+  if (!this._events[type])
+    // Optimize the case of one listener. Don't need the extra array object.
+    this._events[type] = listener;
+  else if (util.isObject(this._events[type]))
+    // If we've already got an array, just append.
+    this._events[type].push(listener);
+  else
+    // Adding the second element, need to change to array.
+    this._events[type] = [this._events[type], listener];
+
+  // Check for listener leak
+  if (util.isObject(this._events[type]) && !this._events[type].warned) {
+    var m;
+    if (!util.isUndefined(this._maxListeners)) {
+      m = this._maxListeners;
+    } else {
+      m = EventEmitter.defaultMaxListeners;
+    }
+
+    if (m && m > 0 && this._events[type].length > m) {
+      this._events[type].warned = true;
+      console.error('(node) warning: possible EventEmitter memory ' +
+                    'leak detected. %d listeners added. ' +
+                    'Use emitter.setMaxListeners() to increase limit.',
+                    this._events[type].length);
+      console.trace();
+    }
+  }
+
+  return this;
 };
 
-/**
- * Static method; Return the number of listeners for a given event.
- *
- * @method listenerCount
- * @static
- * @param  {EventEmitter} emitter The event emitter
- * @param  {String} event The event name
- * @return {Number} The number of listener
- */
-EventEmitter.listenerCount = function (emitter, event) {
-  return emitter.listeners(event).length;
+EventEmitter.prototype.on = EventEmitter.prototype.addListener;
+
+EventEmitter.prototype.once = function(type, listener) {
+  if (!util.isFunction(listener))
+    throw TypeError('listener must be a function');
+
+  function g() {
+    this.removeListener(type, g);
+    listener.apply(this, arguments);
+  }
+
+  g.listener = listener;
+  this.on(type, g);
+
+  return this;
 };
 
-exports.EventEmitter = EventEmitter;
+// emits a 'removeListener' event iff the listener was removed
+EventEmitter.prototype.removeListener = function(type, listener) {
+  var list, position, length, i;
 
-////////////////////////////////////////////////////////////////////////////////
+  if (!util.isFunction(listener))
+    throw TypeError('listener must be a function');
 
-// keywords: js, javascript, nodejs events.EventEmitter, clonable
+  if (!this._events || !this._events[type])
+    return this;
 
-var util = require('util');
-var deepClone = require('./deepClone.js').deepClone;
+  list = this._events[type];
+  length = list.length;
+  position = -1;
 
-/**
- * An EventEmitter with an added method to clone this object.
- *
- * @class ClonableEventEmitter
- * @constructor
- */
-function ClonableEventEmitter() {
-  EventEmitter.call(this);
-}
-util.inherits(ClonableEventEmitter, EventEmitter);
+  if (list === listener ||
+      (util.isFunction(list.listener) && list.listener === listener)) {
+    delete this._events[type];
+    if (this._events.removeListener)
+      this.emit('removeListener', type, listener);
 
-/**
- * Returns a clone of this object.
- *
- * @method clone
- * @return {ClonableEventEmitter} The clone of this object
- */
-ClonableEventEmitter.prototype.clone = function () {
-  var new_one = new ClonableEventEmitter(), i, j;
-  new_one._maxListeners = deepClone(this._maxListeners);
-  new_one._events = deepClone(this._events);
-  return new_one;
+  } else if (util.isObject(list)) {
+    for (i = length; i-- > 0;) {
+      if (list[i] === listener ||
+          (list[i].listener && list[i].listener === listener)) {
+        position = i;
+        break;
+      }
+    }
+
+    if (position < 0)
+      return this;
+
+    if (list.length === 1) {
+      list.length = 0;
+      delete this._events[type];
+    } else {
+      list.splice(position, 1);
+    }
+
+    if (this._events.removeListener)
+      this.emit('removeListener', type, listener);
+  }
+
+  return this;
 };
 
-exports.ClonableEventEmitter = ClonableEventEmitter;
+EventEmitter.prototype.removeAllListeners = function(type) {
+  var key, listeners;
+
+  if (!this._events)
+    return this;
+
+  // not listening for removeListener, no need to emit
+  if (!this._events.removeListener) {
+    if (arguments.length === 0)
+      this._events = {};
+    else if (this._events[type])
+      delete this._events[type];
+    return this;
+  }
+
+  // emit removeListener for all listeners on all events
+  if (arguments.length === 0) {
+    for (key in this._events) {
+      if (key === 'removeListener') continue;
+      this.removeAllListeners(key);
+    }
+    this.removeAllListeners('removeListener');
+    this._events = {};
+    return this;
+  }
+
+  listeners = this._events[type];
+
+  if (util.isFunction(listeners)) {
+    this.removeListener(type, listeners);
+  } else {
+    // LIFO order
+    while (listeners.length)
+      this.removeListener(type, listeners[listeners.length - 1]);
+  }
+  delete this._events[type];
+
+  return this;
+};
+
+EventEmitter.prototype.listeners = function(type) {
+  var ret;
+  if (!this._events || !this._events[type])
+    ret = [];
+  else if (util.isFunction(this._events[type]))
+    ret = [this._events[type]];
+  else
+    ret = this._events[type].slice();
+  return ret;
+};
+
+EventEmitter.listenerCount = function(emitter, type) {
+  var ret;
+  if (!emitter._events || !emitter._events[type])
+    ret = 0;
+  else if (util.isFunction(emitter._events[type]))
+    ret = 1;
+  else
+    ret = emitter._events[type].length;
+  return ret;
+};
