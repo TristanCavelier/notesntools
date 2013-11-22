@@ -1,3 +1,12 @@
+(function (root, factory) {
+  if (typeof define === 'function' && define.amd) {
+    define(factory);
+  } else if (typeof module === 'object' && typeof exports === 'object') {
+    module.exports = factory();
+  } else {
+    root.events = factory();
+  }
+}(this, function () {
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -40,7 +49,6 @@ function EventEmitter() {
   this._events = this._events || {};
   this._maxListeners = this._maxListeners || undefined;
 }
-module.exports = EventEmitter;
 
 // Backwards-compat with node 0.10.x
 EventEmitter.EventEmitter = EventEmitter;
@@ -293,3 +301,6 @@ EventEmitter.listenerCount = function(emitter, type) {
     ret = emitter._events[type].length;
   return ret;
 };
+
+return EventEmitter;
+}));
