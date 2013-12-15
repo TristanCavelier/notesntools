@@ -1,0 +1,18 @@
+.
+├── Gruntfile.js
+├── README
+├── lib
+│   └── thirdparty.js
+├── package.json
+├── src
+│   ├── browserify.js
+│   ├── mylib.js
+│   ├── util
+│   │   ├── XMLHttpRequest.js
+│   │   └── myutil.js
+│   └── wrap
+│       ├── browserify.end
+│       └── browserify.start
+└── test.html
+
+4 directories, 11 files
