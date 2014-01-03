@@ -6,6 +6,13 @@
  * when the new function is called. See Mozilla Developer Network:
  * Function.prototype.bind
  *
+ * In PhantomJS, their is a bug with `Function.prototype.bind`. You can
+ * reproduce this bug by testing this code:
+ *
+ *     function a(str) { console.log(this, str); }
+ *     var b = a.bind({"a": "b"}, "test");
+ *     b();
+ *
  * @param {Function} fun The function to bind
  *
  * @param {Object} thisArg The value to be passed as the `this` parameter to
@@ -24,6 +31,14 @@ function bind(fun, thisArg) {
     return fun.apply(thisArg, args);
   };
 }
+// or
+Function.prototype.bind = function (thisArg) {
+  var fun = this, args = [].slice.call(arguments, 1);
+  return function () {
+    args.push.apply(args, arguments);
+    return fun.apply(thisArg, args);
+  };
+};
 
 //////////////////////////////////////////////////////////////////////
 // Tests
