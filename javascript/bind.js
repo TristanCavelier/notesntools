@@ -1,3 +1,5 @@
+/*jslint indent: 2, sloppy: true */
+
 // keywords: js, javascript, function prototype bind
 
 /**
@@ -31,14 +33,22 @@ function bind(fun, thisArg) {
     return fun.apply(thisArg, args);
   };
 }
-// or
-Function.prototype.bind = function (thisArg) {
-  var fun = this, args = [].slice.call(arguments, 1);
-  return function () {
-    args.push.apply(args, arguments);
-    return fun.apply(thisArg, args);
-  };
-};
+
+//////////////////////////////////////////////////////////////////////
+// is equal to above, if Function.prototype.bind exists
+
+// var bind = Function.prototype.call.bind(Function.prototype.bind);
+
+//////////////////////////////////////////////////////////////////////
+// other, if Function.prototype.bind doesn't exist
+
+// Function.prototype.bind = function (thisArg) {
+//   var fun = this, args = [].slice.call(arguments, 1);
+//   return function () {
+//     args.push.apply(args, arguments);
+//     return fun.apply(thisArg, args);
+//   };
+// };
 
 //////////////////////////////////////////////////////////////////////
 // Tests
