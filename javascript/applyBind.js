@@ -3,13 +3,21 @@
 // keywords: js, javascript, function prototype applyBind, apply, bind
 
 /**
+ * Designed for Function.prototype object
+ */
+var applyBindMethod = function (thisArg, args) {
+  var fun = this;
+  args = [].slice.call(args);
+  return function () {
+    args.push.apply(args, arguments);
+    return fun.apply(thisArg, args);
+  };
+};
+
+/**
  * Creates a new function that, when called, has its `this` keyword set to the
  * provided value, with a given array of arguments preceding any provided
  * when the new function is called.
- *
- *     function a(str) { console.log(this, str); }
- *     var b = a.applyBind({"a": "b"}, ["test"]);
- *     b();
  *
  * @param {Function} fun The function to bind
  *
@@ -17,27 +25,31 @@
  *   the target function when the bound function is called. The value is
  *   ignored if the bound function is constructed using the `new` operator.
  *
- * @param {Array} [argument] Arguments to prepend to arguments provided to the
+ * @param {Array} [args] Arguments to prepend to arguments provided to the
  *   bound function when invoking the target function.
  *
  * @return {Function} The bound function.
  */
-function applyBind(fun, thisArg, args) {
-  args = [].slice.call(args);
-  return function () {
-    args.push.apply(args, arguments);
-    return fun.apply(thisArg, args);
-  };
-}
+var applyBind = Function.prototype.call.bind(applyBindMethod);
 
 //////////////////////////////////////////////////////////////////////
-// other, improve Function.prototype
+// improve Function.prototype
 
-// Function.prototype.applyBind = function (thisArg, args) {
-//   var fun = this;
-//   args = [].slice.call(args);
-//   return function () {
-//     args.push.apply(args, arguments);
-//     return fun.apply(thisArg, args);
-//   };
-// };
+Function.prototype.applyBind = applyBindMethod;
+
+
+//////////////////////////////////////////////////////////////////////
+// Tests
+
+var _1 = {}, _2 = {}, o = {
+  "m": function (a, b) {
+    this.a = a;
+    this.b = b;
+  }
+};
+o.m.applyBind(_1, [1])(2);
+applyBind(o.m, _2, [1])(2);
+console.log("fun.applyBind(..) === applyBind(fun, ...)");
+console.log('   ', JSON.stringify(_1) === JSON.stringify(_2));
+console.log("check fun owner");
+console.log('   ', JSON.stringify(o) === "{}");

@@ -33,39 +33,40 @@ function bind(fun, thisArg) {
     return fun.apply(thisArg, args);
   };
 }
-
-//////////////////////////////////////////////////////////////////////
-// is equal to above, if Function.prototype.bind exists
-
+// // equal to
 // var bind = Function.prototype.call.bind(Function.prototype.bind);
 
-//////////////////////////////////////////////////////////////////////
-// other, if Function.prototype.bind doesn't exist
+/**
+ * Designed for Function.prototype object
+ */
+var bindMethod = function (thisArg) {
+  var fun = this, args = [].slice.call(arguments, 2);
+  return function () {
+    args.push.apply(args, arguments);
+    return fun.apply(thisArg, args);
+  };
+};
 
-// Function.prototype.bind = function (thisArg) {
-//   var fun = this, args = [].slice.call(arguments, 1);
-//   return function () {
-//     args.push.apply(args, arguments);
-//     return fun.apply(thisArg, args);
-//   };
-// };
+//////////////////////////////////////////////////////////////////////
+// if Function.prototype.bind doesn't exist
+
+if (!Function.prototype.bind) {
+  Function.prototype.bind = bindMethod;
+}
+
 
 //////////////////////////////////////////////////////////////////////
 // Tests
 
-if (!module.parent) {
-  (function () {
-    var _1 = {}, _2 = {}, o = {
-      "m": function (a, b) {
-        this.a = a;
-        this.b = b;
-      }
-    };
-    o.m.bind(_1, 1)(2);
-    bind(o.m, _2, 1)(2);
-    console.log("fun.bind(..) === bind(fun, ...)");
-    console.log('   ', JSON.stringify(_1) === JSON.stringify(_2));
-    console.log("check fun owner");
-    console.log('   ', JSON.stringify(o) === "{}");
-  }());
-}
+var _1 = {}, _2 = {}, o = {
+  "m": function (a, b) {
+    this.a = a;
+    this.b = b;
+  }
+};
+o.m.bind(_1, 1)(2);
+bind(o.m, _2, 1)(2);
+console.log("fun.bind(..) === bind(fun, ...)");
+console.log('   ', JSON.stringify(_1) === JSON.stringify(_2));
+console.log("check fun owner");
+console.log('   ', JSON.stringify(o) === "{}");
