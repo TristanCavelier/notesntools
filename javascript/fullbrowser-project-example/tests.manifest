@@ -1,0 +1,25 @@
+CACHE MANIFEST
+
+#
+# A list of the resources that browsers should cache to have
+# the application running completely offline.
+#
+# To update offline instances of the application, this file needs
+# to be modified, either in the list or in the comments.
+#
+# To understand how all this works, read http://appcachefacts.info/
+# and the linked references.
+#
+
+NETWORK:
+*
+
+CACHE:
+#tests.html
+http://sinonjs.org/releases/sinon-1.8.2.js
+http://code.jquery.com/qunit/qunit-1.13.0.css
+http://code.jquery.com/qunit/qunit-1.13.0.js
+http://www.jslint.com/jslint.js
+#index.js
+#MYLIB.js
+#tests/jslint.js

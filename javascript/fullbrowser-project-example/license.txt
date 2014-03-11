@@ -1,0 +1,5 @@
+/*!
+ * MY LIB description v0.1.0
+ *
+ * PUT LICENSE HERE
+ */

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html manifest="index.manifest.disabled" lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>MY LIB</title>
+</head>
+<body>
+  <p>
+    <a href="tests.html">Tests</a> -
+    <button disabled="1">Publish</button> -
+    <a href="MYLIB.js">Download latest built version</a>
+  </p>
+  <p id="error"></p>
+  <textarea id="build" style="width: 99%;"></textarea>
+  <script src="index.js"></script>
+  <script>
+
+  var build_textarea = document.querySelector("#build");
+  var error_p = document.querySelector("#error");
+  //var message_p = document.querySelector("#message");
+
+  var files = toConcat.slice();
+  var rows = 0;
+
+
+  function next() {
+    var url = files.shift();
+    if (url === undefined) {
+      return end();
+    }
+    var xhr = new XMLHttpRequest();
+    xhr.onload = function () {
+      next();
+      var text = xhr.responseText.replace(/(?:.|\n)*\n(?:"|')use strict(?:"|');\n/m, "");
+      build_textarea.value += text;
+      rows += text.split("\n").length - 1;
+      build_textarea.setAttribute("rows", rows);
+    };
+    xhr.onerror = function () {
+      error_p.textContent += "Unable to get " + url + ". ";
+    };
+    xhr.open("GET", url, true);
+    xhr.send();
+  }
+
+  function end() {
+    //message_p.innerHTML = "<a href=\"data:application/javascript;base64," +
+    //                    btoa(build_textarea.textContent) + "\">download</a>";
+  }
+
+  function download() {
+    location.href = "data:application/javascript;base64," +
+      btoa(build_textarea.textContent);
+  }
+
+  function makeDynamicRowsForTextArea(textarea) {
+    function updateRows(event) {
+      var offset = 0;
+      if (event instanceof KeyboardEvent && event.keyCode === 13) {
+        offset += 1;
+      }
+      textarea.setAttribute("rows", textarea.value.split("\n").length + offset);
+    }
+    updateRows();
+    textarea.addEventListener("keypress", updateRows);
+  }
+
+  //////////////////////////////////////////////////////////////////////
+
+  build_textarea.value = "";
+  makeDynamicRowsForTextArea(build_textarea);
+  next();
+
+  </script>
+</body>
+</html>
