@@ -2,16 +2,15 @@
 // keywords: js, javascript, is date tester
 
 /**
- * Test if the a value is a date
+ *     isDate(date): Boolean
+ *
+ * Test if the a value is a date.
  *
  * @param  {String,Number,Date} date The date to test
  * @return {Boolean} true if success, else false
  */
 function isDate(date) {
-  if (!isNaN((new Date(date === null ? undefined : date)).getTime())) {
-    return true;
-  }
-  return false;
+  return !isNaN((new Date(date === null ? undefined : date)).getTime());
 }
 
 //////////////////////////////
