@@ -7,14 +7,15 @@
  * @return {String} The new UUID.
  */
 function uuid() {
-  function S4() {
-    return ('0000' + Math.floor(
-      Math.random() * 0x10000 /* 65536 */
-    ).toString(16)).slice(-4);
-  }
-  return S4() + S4() + "-" +
-    S4() + "-" +
-    S4() + "-" +
-    S4() + "-" +
-    S4() + S4() + S4();
+  var s = (Math.random().toString(16) + "00000000").slice(2, 10);
+  s += "-";
+  s += (Math.random().toString(16) + "0000").slice(2, 6);
+  s += "-";
+  s += (Math.random().toString(16) + "0000").slice(2, 6);
+  s += "-";
+  s += (Math.random().toString(16) + "0000").slice(2, 6);
+  s += "-";
+  s += (Math.random().toString(16) + "000000").slice(2, 8);
+  s += (Math.random().toString(16) + "000000").slice(2, 8);
+  return s;
 }
