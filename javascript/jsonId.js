@@ -12,9 +12,28 @@
 
 // keywords: js, javascript, sorted ordered unique json, stringify, parse
 
-function jsonId(value, replacer) {
-  function jsonIdRec(key, value) {
-    var i, l, res;
+function concatStringNTimes(string, n) {
+  var res = "";
+  while (--n >= 0) { res += string; }
+  return res;
+}
+
+function jsonId(value, replacer, space) {
+  var indent, key_value_space = "";
+  if (typeof space === "string") {
+    if (space !== "") {
+      indent = space;
+      key_value_space = " ";
+    }
+  } else if (typeof space === "number") {
+    if (isFinite(space) && space > 0) {
+      indent = concatStringNTimes(" ", space);
+      key_value_space = " ";
+    }
+  }
+
+  function jsonIdRec(key, value, deep) {
+    var i, l, res, my_space;
     if (typeof value === "object" && value !== null &&
         typeof value.toJSON === "function") {
       value = value.toJSON();
@@ -23,34 +42,57 @@ function jsonId(value, replacer) {
       value = replacer(key, value);
     }
 
+    if (indent) {
+      my_space = concatStringNTimes(indent, deep);
+    }
     if (Array.isArray(value)) {
       res = [];
       for (i = 0; i < value.length; i += 1) {
-        res[res.length] = jsonIdRec(i, value[i]);
+        res[res.length] = jsonIdRec(i, value[i], deep + 1);
         if (res[res.length - 1] === undefined) {
           res[res.length - 1] = "null";
         }
       }
+      if (res.length === 0) { return "[]"; }
+      if (indent) {
+        return "[\n" + my_space + indent +
+          res.join(",\n" + my_space + indent) +
+          "\n" + my_space + "]";
+      }
       return "[" + res.join(",") + "]";
     }
     if (typeof value === "object" && value !== null) {
-      res = Object.keys(value).sort();
+      if (Array.isArray(replacer)) {
+        res = replacer.reduce(function (p, c) {
+          p.push(c);
+          return p;
+        }, []);
+      } else {
+        res = Object.keys(value);
+      }
+      res.sort();
       for (i = 0, l = res.length; i < l; i += 1) {
         key = res[i];
-        res[i] = jsonIdRec(key, value[key]);
+        res[i] = jsonIdRec(key, value[key], deep + 1);
         if (res[i] !== undefined) {
-          res[i] = JSON.stringify(key) + ":" + res[i];
+          res[i] = JSON.stringify(key) + ":" + key_value_space + res[i];
         } else {
           res.splice(i, 1);
           l -= 1;
           i -= 1;
         }
       }
+      if (res.length === 0) { return "{}"; }
+      if (indent) {
+        return "{\n" + my_space + indent +
+          res.join(",\n" + my_space + indent) +
+          "\n" + my_space + "}";
+      }
       return "{" + res.join(",") + "}";
     }
     return JSON.stringify(value);
   }
-  return jsonIdRec("", value);
+  return jsonIdRec("", value, 0);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -79,8 +121,9 @@ onsuccess(jsonId({
   "Date": new Date(),
   "regexp": /regexp/gi,
   "1": 1,
-  "function": function () { return; }
-}));
+  "function": function () { return; },
+  "array": ["a", "b", {"c": "d"}]
+}, null, 2));
 
 onsuccess(jsonId({"a": "b"}, function (key, value) {
   if (key === "a") {
@@ -88,3 +131,5 @@ onsuccess(jsonId({"a": "b"}, function (key, value) {
   }
   return value;
 }));
+
+onsuccess(jsonId({"a": "b", "c": "d"}, ["a"]));
