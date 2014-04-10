@@ -98,38 +98,66 @@ function jsonId(value, replacer, space) {
 /////////////////////////////////////////////////////////////////////////////
 // Visual tests
 
-function onsuccess(arg) {
-  console.log(typeof arg, arg);
-}
+console.log(jsonId(undefined) === undefined);
+console.log(jsonId(null) === 'null');
+console.log(jsonId("lol") === '"lol"');
+console.log(jsonId(NaN) === 'null');
+console.log(jsonId(1) === '1');
+console.log(jsonId(new Date(0)) === '"1970-01-01T00:00:00.000Z"');
 
-onsuccess(jsonId(undefined));
-onsuccess(jsonId(null));
-onsuccess(jsonId("lol"));
-onsuccess(jsonId(NaN));
-onsuccess(jsonId(1));
-onsuccess(jsonId(new Date()));
+console.log(jsonId([NaN, "lol", false, null, undefined, new Date(0), 1]) ===
+            '[null,"lol",false,null,null,"1970-01-01T00:00:00.000Z",1]');
 
-onsuccess(jsonId([NaN, "lol", false, null, undefined, new Date(), 1]));
+console.log(
+  jsonId({
+    "NaN": NaN,
+    "lol": "lol",
+    "null": null,
+    "false": false,
+    "undefined": undefined,
+    "Date": new Date(0),
+    "regexp": /regexp/gi,
+    "1": 1,
+    "function": function () { return; },
+    "jsonablefunction": (function () {
+      var f = function () { return; };
+      f.toJSON = function () { return "jsonablefunction"; };
+      return f;
+    }()),
+    "array": ["a", "b", {"c": "d"}],
+    "object": {"ob": "ject"},
+    "jsonableobject": {"toJSON": function () {
+      return "jsonableobject";
+    }},
+  }, null, 2) ===
+    '{\n' +
+    '  "1": 1,\n' +
+    '  "Date": "1970-01-01T00:00:00.000Z",\n' +
+    '  "NaN": null,\n' +
+    '  "array": [\n' +
+    '    "a",\n' +
+    '    "b",\n' +
+    '    {\n' +
+    '      "c": "d"\n' +
+    '    }\n' +
+    '  ],\n' +
+    '  "false": false,\n' +
+    '  "jsonablefunction": "jsonablefunction",\n' +
+    '  "jsonableobject": "jsonableobject",\n' +
+    '  "lol": "lol",\n' +
+    '  "null": null,\n' +
+    '  "object": {\n' +
+    '    "ob": "ject"\n' +
+    '  },\n' +
+    '  "regexp": {}\n' +
+    '}'
+);
 
-
-onsuccess(jsonId({
-  "NaN": NaN,
-  "lol": "lol",
-  "null": null,
-  "false": false,
-  "undefined": undefined,
-  "Date": new Date(),
-  "regexp": /regexp/gi,
-  "1": 1,
-  "function": function () { return; },
-  "array": ["a", "b", {"c": "d"}]
-}, null, 2));
-
-onsuccess(jsonId({"a": "b"}, function (key, value) {
+console.log(jsonId({"a": "b"}, function (key, value) {
   if (key === "a") {
     return value + key + "c";
   }
   return value;
-}));
+}) === '{"a":"bac"}');
 
-onsuccess(jsonId({"a": "b", "c": "d"}, ["a"]));
+console.log(jsonId({"a": "b", "c": "d"}, ["a"]) === '{"a":"b"}');
