@@ -34,8 +34,7 @@ function jsonId(value, replacer, space) {
 
   function jsonIdRec(key, value, deep) {
     var i, l, res, my_space;
-    if (typeof value === "object" && value !== null &&
-        typeof value.toJSON === "function") {
+    if (value && typeof value.toJSON === "function") {
       value = value.toJSON();
     }
     if (typeof replacer === "function") {
