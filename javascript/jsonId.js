@@ -13,6 +13,7 @@
 // keywords: js, javascript, sorted ordered unique json, stringify, parse
 
 function concatStringNTimes(string, n) {
+  /*jslint plusplus: true */
   var res = "";
   while (--n >= 0) { res += string; }
   return res;
