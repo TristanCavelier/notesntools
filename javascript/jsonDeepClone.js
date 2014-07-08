@@ -1,7 +1,9 @@
 
 // keywords: js, javascript, json, deep clone
+
 /*jslint indent: 2, maxlen: 80 */
-(function () {
+
+(function (root) {
   "use strict";
 
   /**
@@ -10,13 +12,12 @@
    * @param  {A} object The jsonable object to clone
    * @return {A} The cloned object
    */
-  function jsonDeepClone(object) {
-    var tmp = JSON.stringify(object);
-    if (tmp === undefined) {
-      return undefined;
-    }
+  function jsonDeepClone(object, replacer) {
+    var tmp = JSON.stringify(object, replacer);
+    if (tmp === undefined) { return undefined; }
     return JSON.parse(tmp);
   }
 
-  exports.jsonDeepClone = jsonDeepClone;
-}());
+  root.jsonDeepClone = jsonDeepClone;
+
+}(this));
