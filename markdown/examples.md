@@ -54,12 +54,15 @@ Search on [DuckDuckGo][] for more information.
 - - -
 
 # This is the title
+
 Text
 
 ## This is the subheader
+
 Text
 
 ### This is the third level header
+
 Text
 
 * * *
@@ -75,15 +78,13 @@ This is the subheader
 ![DuckDuckGo image again][duckimage]
 [duckimage]: http://www.duckduckgo.com/assets/logo_homepage.normal.v102.png "Oh! Another duck!"
 
-> "Quoted string, yes,
-> this text is from me. This quoted can have
-> anything you want like headers and list..."
-> - *me*
+> "Quoted string, yes, this text is from me. This quoted can have anything you
+> want like headers and list..."  - *me*
 
 `here's some code`
 
 ``and here `a second one` ``
 
         my code is
-          a block of code
-        oh yeah
+      a block of code
+    oh yeah
