@@ -34,6 +34,26 @@
 
   /*jslint indent: 2 */
 
+  /**
+   *     spawn(generator): Promise< returned_value >
+   *
+   * Use generator function to do asynchronous operations sequentialy using
+   * `yield` operator.
+   *
+   *     spawn(function* () {
+   *       try {
+   *         var config = yield getConfig();
+   *         config.enableSomething = true;
+   *         yield sleep(1000);
+   *         yield putConfig(config);
+   *       } catch (e) {
+   *         console.error(e);
+   *       }
+   *     });
+   *
+   * @param  {Function} generator A generator function.
+   * @return {Promise} A new cancellable promise
+   */
   function spawn(generator) {
     var promise;
     return new root.Promise(function (done, fail) {

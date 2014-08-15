@@ -36,6 +36,29 @@
 
   // dependency: spawn
 
+  /**
+   *     sequence(thenArray): Promise< returned_value >
+   *
+   * An alternative to `spawn`, using `spawn` but instead of using a generator
+   * function, it uses an array of function like in then chains. This function
+   * works with old ECMAScript version.
+   *
+   *     var config;
+   *     sequence([function () {
+   *       return getConfig();
+   *     }, function (_config) {
+   *       config = _config;
+   *       config.enableSomething = true;
+   *       return sleep(1000);
+   *     }, function () {
+   *       return putConfig(config);
+   *     }, [null, function (e) {
+   *       console.error(e);
+   *     }]]);
+   *
+   * @param  {Array} thenArray An array of function.
+   * @return {Promise} A new cancellable promise
+   */
   function sequence(array) {
     return root.spawn(function () {
       var i = 0, g;
