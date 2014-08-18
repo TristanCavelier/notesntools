@@ -73,8 +73,8 @@
       object[tmp.object.key] = tmp.object.value;
       tmp = reEatWhiteSpacesIfThere.exec(tmp[2]);
     }
-    if ((/^(\})(.*)/).exec(tmp[2]) === null) { return null; }
-    return update([text, text.slice(0, -tmp[2].length), tmp[2]], {"object": object, "input": text, "index": 0});
+    if ((tmp = (/^(\})(.*)/).exec(tmp[2])) === null) { return null; }
+    return update([text, text.slice(0, text.length - tmp[2].length), tmp[2]], {"object": object, "input": text, "index": 0});
   };
 
   eat.JSONPair = function (text) {
@@ -86,7 +86,7 @@
     tmp = reEatWhiteSpacesIfThere.exec(tmp[2]);
     if ((tmp = eat.JSONValue(tmp[2])) === null) { return null; }
     object.value = tmp.object;
-    return update([text, text.slice(0, -tmp[2].length), tmp[2]], {"object": object, "input": text, "index": 0});
+    return update([text, text.slice(0, text.length - tmp[2].length), tmp[2]], {"object": object, "input": text, "index": 0});
   };
 
   eat.JSONArray = function (text) {
@@ -105,8 +105,8 @@
       object.push(tmp.object);
       tmp = reEatWhiteSpacesIfThere.exec(tmp[2]);
     }
-    if ((/^(\])(.*)/).exec(tmp[2]) === null) { return null; }
-    return update([text, text.slice(0, -tmp[2].length), tmp[2]], {"object": object, "input": text, "index": 0});
+    if ((tmp = (/^(\])(.*)/).exec(tmp[2])) === null) { return null; }
+    return update([text, text.slice(0, text.length - tmp[2].length), tmp[2]], {"object": object, "input": text, "index": 0});
   };
 
   eat.JSONValue = function (text) {
@@ -147,5 +147,6 @@
   root.console.log(eat.JSONValue('true').object === true);
   root.console.log(JSON.stringify(eat.JSONValue('{ "test" : "retest" }').object) === JSON.stringify({"test": "retest"}));
   root.console.log(JSON.stringify(eat.JSONValue('[ "test" , "retest" ]').object) === JSON.stringify(["test", "retest"]));
+  root.console.log(eat.JSONValue(eat.JSONValue('"hello""world"')[2]).object === "world");
 
 }(this));
