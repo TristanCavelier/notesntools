@@ -1,0 +1,8 @@
+CACHE MANIFEST
+# 0.1.0-2
+NETWORK:
+*
+CACHE:
+index.html
+test.js
+//rawgit.com/TristanCavelier/notesntools/master/javascript/jsonId.js
