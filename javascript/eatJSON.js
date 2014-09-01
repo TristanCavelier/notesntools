@@ -36,13 +36,6 @@
   // Version: 2014-08-18
 
   var objectHasOwnProperty = Function.prototype.call.bind(Object.prototype.hasOwnProperty);
-  function update(a, b) {
-    /*jslint forin: true */
-    var k;
-    for (k in b) { a[k] = b[k]; }
-    return a;
-  }
-
 
   var eat = {};
 
@@ -53,60 +46,67 @@
   var reStrJSONChar = "(?:[^\\x00-\\x1F\\x7F\"\\\\]|\\\\[\"\\\\/bfnrt]|\\\\u[0-9]{4})";
   var reStrJSONString = "(?:\"" + reStrJSONChar + "*\")";
 
-  var reEatWhiteSpacesIfThere = /^(\s*)(.*)/;
   eat.JSONObject = function (text) {
-    var tmp, tmp2, object = {};
-    if ((tmp = (/^(\{)(.*)/).exec(text)) === null) { return null; }
-    tmp = reEatWhiteSpacesIfThere.exec(tmp[2]);
-    if ((tmp2 = (/^(\})(.*)/).exec(tmp[2])) !== null) {
-      return update([text, text.slice(0, -tmp2[2].length), tmp2[2]], {"object": {}, "input": text, "index": 0});
-    }
-    if ((tmp = eat.JSONPair(tmp[2])) === null) { return null; }
-    object[tmp.object.key] = tmp.object.value;
-    tmp = reEatWhiteSpacesIfThere.exec(tmp[2]);
-    while ((tmp2 = (/^(,)(.*)/).exec(tmp[2])) !== null) {
-      tmp2 = reEatWhiteSpacesIfThere.exec(tmp2[2]);
-      if ((tmp = eat.JSONPair(tmp2[2])) === null) { return null; }
-      if (objectHasOwnProperty(object, tmp.object.key)) {
-        return null; // same key found
-      }
+    var tmp, original = text, object = {};
+    if (text[0] !== "{") { return null; }
+    text = text.replace(/^\{\s*/, "");
+    if ((tmp = eat.JSONPair(text)) !== null) {
       object[tmp.object.key] = tmp.object.value;
-      tmp = reEatWhiteSpacesIfThere.exec(tmp[2]);
+      text = text.slice(tmp[0].length).replace(/^\s*/, "");
+      while (text[0] === ",") {
+        text = text.replace(/^,\s*/, "");
+        if ((tmp = eat.JSONPair(text)) === null) { return null; }
+        if (objectHasOwnProperty(object, tmp.object.key)) {
+          return null; // same key found
+        }
+        object[tmp.object.key] = tmp.object.value;
+        text = text.slice(tmp[0].length).replace(/^\s*/, "");
+      }
     }
-    if ((tmp = (/^(\})(.*)/).exec(tmp[2])) === null) { return null; }
-    return update([text, text.slice(0, text.length - tmp[2].length), tmp[2]], {"object": object, "input": text, "index": 0});
+    if (text[0] !== "}") { return null; }
+    tmp = [original.slice(0, original.length - text.length + 1)];
+    tmp.object = object;
+    tmp.index = 0;
+    tmp.input = original;
+    return tmp;
   };
 
   eat.JSONPair = function (text) {
-    var tmp, object = {};
+    var tmp, original = text, object = {};
     if ((tmp = eat.JSONString(text)) === null) { return null; }
     object.key = tmp.object;
-    tmp = reEatWhiteSpacesIfThere.exec(tmp[2]);
-    if ((tmp = (/^(:)(.*)/).exec(tmp[2])) === null) { return null; }
-    tmp = reEatWhiteSpacesIfThere.exec(tmp[2]);
-    if ((tmp = eat.JSONValue(tmp[2])) === null) { return null; }
+    text = text.slice(tmp[0].length).replace(/^\s*/, "");
+    if (text[0] !== ":") { return null; }
+    text = text.replace(/^:\s*/, "");
+    if ((tmp = eat.JSONValue(text)) === null) { return null; }
     object.value = tmp.object;
-    return update([text, text.slice(0, text.length - tmp[2].length), tmp[2]], {"object": object, "input": text, "index": 0});
+    tmp = [original.slice(0, original.length - text.length + tmp[0].length)];
+    tmp.object = object;
+    tmp.index = 0;
+    tmp.input = original;
+    return tmp;
   };
 
   eat.JSONArray = function (text) {
-    var tmp, tmp2, object = [];
-    if ((tmp = (/^(\[)(.*)/).exec(text)) === null) { return null; }
-    tmp = reEatWhiteSpacesIfThere.exec(tmp[2]);
-    if ((tmp2 = (/^(\])(.*)/).exec(tmp[2])) !== null) {
-      return update([text, text.slice(0, -tmp2[2].length), tmp2[2]], {"object": [], "input": text, "index": 0});
-    }
-    if ((tmp = eat.JSONValue(tmp[2])) === null) { return null; }
-    object.push(tmp.object);
-    tmp = reEatWhiteSpacesIfThere.exec(tmp[2]);
-    while ((tmp2 = (/^(,)(.*)/).exec(tmp[2])) !== null) {
-      tmp2 = reEatWhiteSpacesIfThere.exec(tmp2[2]);
-      if ((tmp = eat.JSONValue(tmp2[2])) === null) { return null; }
+    var tmp, original = text, object = [];
+    if (text[0] !== "[") { return null; }
+    text = text.replace(/^\[\s*/, "");
+    if ((tmp = eat.JSONValue(text)) !== null) {
       object.push(tmp.object);
-      tmp = reEatWhiteSpacesIfThere.exec(tmp[2]);
+      text = text.slice(tmp[0].length).replace(/^\s*/, "");
+      while (text[0] === ",") {
+        text = text.replace(/^,\s*/, "");
+        if ((tmp = eat.JSONValue(text)) === null) { return null; }
+        object.push(tmp.object);
+        text = text.slice(tmp[0].length).replace(/^\s*/, "");
+      }
     }
-    if ((tmp = (/^(\])(.*)/).exec(tmp[2])) === null) { return null; }
-    return update([text, text.slice(0, text.length - tmp[2].length), tmp[2]], {"object": object, "input": text, "index": 0});
+    if (text[0] !== "]") { return null; }
+    tmp = [original.slice(0, original.length - text.length + 1)];
+    tmp.object = object;
+    tmp.index = 0;
+    tmp.input = original;
+    return tmp;
   };
 
   eat.JSONValue = function (text) {
@@ -114,39 +114,44 @@
     if ((tmp = (eat.JSONString(text) || eat.JSONNumber(text) || eat.JSONObject(text) || eat.JSONArray(text))) !== null) {
       return tmp;
     }
-    if ((tmp = (/^(true)(.*)/).exec(text)) !== null) {
+    if ((tmp = (/^true/).exec(text)) !== null) {
       tmp.object = true;
-    } else if ((tmp = (/^(false)(.*)/).exec(text)) !== null) {
+    } else if ((tmp = (/^false/).exec(text)) !== null) {
       tmp.object = false;
-    } else if ((tmp = (/^(null)(.*)/).exec(text)) !== null) {
+    } else if ((tmp = (/^null/).exec(text)) !== null) {
       tmp.object = null;
     }
     return tmp;
   };
 
-  var reJSONString = new RegExp("^(" + reStrJSONString + ")(.*)");
+  var reJSONString = new RegExp("^" + reStrJSONString);
   eat.JSONString = function (text) {
     var tmp = reJSONString.exec(text);
     if (tmp === null) { return null; }
-    tmp.object = JSON.parse(tmp[1]); // don't want to reimplement instanciation
+    tmp.object = JSON.parse(tmp[0]); // don't want to reimplement instanciation
     return tmp;
   };
 
-  var reJSONNumber = new RegExp("^(" + reStrJSONNumber + ")(.*)");
+  var reJSONNumber = new RegExp("^" + reStrJSONNumber);
   eat.JSONNumber = function (text) {
     var tmp = reJSONNumber.exec(text);
     if (tmp === null) { return null; }
-    tmp.object = JSON.parse(tmp[1]); // don't want to reimplement instanciation
+    tmp.object = JSON.parse(tmp[0]); // don't want to reimplement instanciation
     return tmp;
   };
 
   ////////////////////////////////////////////////
+
+  function remain(output) {
+    if (output === null) { return null; }
+    return output.input.slice(output[0].length);
+  }
 
   root.console.log(eat.JSONValue('"test"').object === "test");
   root.console.log(eat.JSONValue('13e-2').object === 13e-2);
   root.console.log(eat.JSONValue('true').object === true);
   root.console.log(JSON.stringify(eat.JSONValue('{ "test" : "retest" }').object) === JSON.stringify({"test": "retest"}));
   root.console.log(JSON.stringify(eat.JSONValue('[ "test" , "retest" ]').object) === JSON.stringify(["test", "retest"]));
-  root.console.log(eat.JSONValue(eat.JSONValue('"hello""world"')[2]).object === "world");
+  root.console.log(eat.JSONValue(remain(eat.JSONValue('"hello""world"'))).object === "world");
 
 }(this));
