@@ -1,1 +1,1 @@
-console.log(Date.now() - begin);
+setTimeout(alert, 0, 'test1');
