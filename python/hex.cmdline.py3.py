@@ -32,17 +32,30 @@ def pipe_encode_no_wrap():
     if len(chunk) == 0: return 0
     sys.stdout.write("".join("%02X" % b for b in chunk))
 
-def pipe_encode_wrap(wrap):
+def pipe_encode_even_wrap(wrap):
   byte_length = int(wrap / 2)
   while True:
     chunk = os.read(sys.stdin.fileno(), byte_length)
     if len(chunk) == 0: return 0
     sys.stdout.write("".join("%02X" % b for b in chunk) + "\n")
 
+def pipe_encode_odd_wrap(wrap):
+  remain = ""
+  byte_length = int(wrap / 2) + 1
+  while True:
+    chunk = os.read(sys.stdin.fileno(), byte_length) # even value
+    if len(chunk) == 0: break
+    remain += "".join("%02X" % b for b in chunk)
+    while len(remain) > wrap:
+      sys.stdout.write(remain[:wrap] + "\n")
+      remain = remain[wrap:]
+  if remain != "": sys.stdout.write(remain + "\n")
+  return 0
+
 def pipe_decode_ignore_garbage():
   remain = None
   while True:
-    chunk = os.read(sys.stdin.fileno(), 1024)
+    chunk = os.read(sys.stdin.fileno(), 1024) # not readline because we don't want encoding issue
     if len(chunk) == 0: break
     for b in chunk:
       if (b >= 48 and b <= 57) or (b >= 97 and b <= 102) or (b >= 65 and b <= 70):
@@ -54,10 +67,10 @@ def pipe_decode_ignore_garbage():
   sys.stderr.write("hex: invalid input\n")
   return 1
 
-def pipe_decode():
+def pipe_decode_ignore_newlines():
   remain = None
   while True:
-    chunk = os.read(sys.stdin.fileno(), 1024)
+    chunk = os.read(sys.stdin.fileno(), 1024) # not readline because we don't want encoding issue
     if len(chunk) == 0: break
     for b in chunk:
       if b in (0x0D, 0x0A): continue
@@ -81,12 +94,12 @@ def main():
   if args.decode:
     if args.ignore_garbage:
       return pipe_decode_ignore_garbage()
-    return pipe_decode()
+    return pipe_decode_ignore_newlines()
   if args.wrap == 0:
     return pipe_encode_no_wrap()
   if args.wrap % 2 == 0:
-    return pipe_encode_wrap(args.wrap)
-  return pipe_encode_clever_wrap(args.wrap)
+    return pipe_encode_even_wrap(args.wrap)
+  return pipe_encode_odd_wrap(args.wrap)
 
 if __name__ == "__main__":
   sys.exit(main())
