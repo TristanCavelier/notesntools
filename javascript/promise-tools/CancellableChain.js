@@ -36,63 +36,71 @@
   // dependency: Promise
 
   // Can cancel promises with `promise.cancel();`.
-  function CancellableChain(value) {
-    this._promise = root.Promise.resolve(value);
-  }
-  CancellableChain.prototype._cancelled = false;
-  CancellableChain.prototype._promise = null;
-  CancellableChain.prototype._previous = null;
-  CancellableChain.prototype._thenValue = null;
-  CancellableChain.prototype.then = function (onDone, onFail) {
-    var cc = new CancellableChain();
-    cc._previous = this;
-    cc._promise = this._promise.then(function (v) {
-      delete cc._previous;
-      if (cc._cancelled) {
-        //if (typeof onFail !== "function") { return root.Promise.reject(new Error("Cancelled")); }
-        //it._thenValue = onFail(new Error("Cancelled"));
-        //return it._thenValue;
-        return root.Promise.reject(new Error("Cancelled"));
+  function CancellableChain(promise, onDone, onFail, previous) {
+    var it = this;
+    if (!promise || typeof promise.then !== "function") {
+      if (typeof onDone === "function") {
+        promise = root.Promise.resolve(promise);
+      } else {
+        it._r = root.Promise.resolve(promise);
+        return;
       }
-      if (typeof onDone !== "function") { return v; }
-      cc._thenValue = onDone(v);
-      if (cc._cancelled && cc._thenValue && typeof cc._thenValue.then === "function" && typeof cc._thenValue.cancel === "function") {
-        try { cc._thenValue.cancel(); } catch (ignore) {}
+    }
+    function _onDone(v) {
+      delete it._cf;
+      if (it._cancelled) { return; }
+      if (typeof onDone !== "function") {
+        return v;
       }
-      return cc._thenValue;
-    }, function (e) {
-      delete cc._previous;
-      if (cc._cancelled) {
-        //if (typeof onFail !== "function") { return root.Promise.reject(new Error("Cancelled")); }
-        //it._thenValue = onFail(new Error("Cancelled"));
-        //return it._thenValue;
-        return root.Promise.reject(new Error("Cancelled"));
+      it._value = onDone(v);
+      if (it._cancelled) {
+        if (it._value && typeof it._value.then === "function" && typeof it._value.cancel === "function") {
+          try { it._value.cancel(); } catch (ignore) {}
+        }
       }
-      if (typeof onFail !== "function") { return root.Promise.reject(e); }
-      cc._thenValue = onFail(e);
-      if (cc._cancelled && cc._thenValue && typeof cc._thenValue.then === "function" && typeof cc._thenValue.cancel === "function") {
-        try { cc._thenValue.cancel(); } catch (ignore) {}
+      return it._value;
+    }
+    function _onFail(v) {
+      delete it._cf;
+      if (it._cancelled) { return; }
+      if (typeof onFail !== "function") {
+        return root.Promise.reject(v);
       }
-      return cc._thenValue;
+      it._value = onFail(v);
+      if (it._cancelled) {
+        if (it._value && typeof it._value.then === "function" && typeof it._value.cancel === "function") {
+          try { it._value.cancel(); } catch (ignore) {}
+        }
+      }
+      return it._value;
+    }
+    it._previous = previous;
+    it._c = new root.Promise(function (d, f) {
+      /*jslint unparam: true */
+      it._cf = f;
     });
-    return cc;
+    it._r = root.Promise.race([it._c, promise.then(_onDone, _onFail)]);
+  }
+  CancellableChain.prototype.then = function (onDone, onFail) {
+    return new CancellableChain(this._r, onDone, onFail, this);
   };
   CancellableChain.prototype.catch = function (onFail) {
     return this.then(null, onFail);
   };
   CancellableChain.prototype.cancel = function () {
     this._cancelled = true;
-    if (this._thenValue && typeof this._thenValue.then === "function" && typeof this._thenValue.cancel === "function") {
-      try { this._thenValue.cancel(); } catch (ignore) {}
+    if (typeof this._cf === "function") {
+      try { this._cf(new Error("Cancelled")); } catch (ignore) {}
+    }
+    if (this._value && typeof this._value.then === "function" && typeof this._value.cancel === "function") {
+      try { this._value.cancel(); } catch (ignore) {}
     }
     if (this._previous && typeof this._previous.then === "function" && typeof this._previous.cancel === "function") {
       try { this._previous.cancel(); } catch (ignore) {}
     }
   };
   CancellableChain.prototype.detach = function () {
-    var cc = new CancellableChain();
-    cc._promise = this._promise;
-    return cc;
+    return new CancellableChain(this._r);
   };
   // var globalChain = new CancellableChain();
 
@@ -190,7 +198,7 @@
       t += "5" + e;
     });
     setTimeout(function () {
-      console.log(t === "5Error: Cancelled3Error: Cancelled4");
+      console.log(t === "3Error: Cancelled5Error: Cancelled4");
     }, 1000);
   }());
 
