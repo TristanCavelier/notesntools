@@ -201,5 +201,31 @@
       console.log(t === "3Error: Cancelled5Error: Cancelled4");
     }, 1000);
   }());
+  (function () {
+    /*jslint vars: true */
+    // all cancelled then should pass Error Cancelled to no cancelled then
+    var c1 = new CancellableChain(), c2, c3, t = "";
+    c1 = c1.then(function () {
+      t += "1";
+    }, function (e) {
+      t += "1" + e;
+    });
+    c2 = c1.then(function () {
+      t += "2";
+    }, function (e) {
+      t += "2" + e;
+    });
+    c3 = c1.then(function () {
+      t += "3";
+    }, function (e) {
+      t += "3" + e;
+    });
+    c1.cancel = null;
+    c2.cancel();
+    delete c1.cancel;
+    setTimeout(function () {
+      console.log(t === "13");
+    }, 1000);
+  }());
 
 }(this));
