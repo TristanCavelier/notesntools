@@ -29,7 +29,7 @@ def utf8_deep_json_encode(obj):
     return obj
 
 def json_loads(s):
-    return utf8_deep_json_encoder(json.loads(s))
+    return utf8_deep_json_encode(json.loads(s))
 
 j = '{"a":"b","c":[]}'
 
