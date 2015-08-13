@@ -4,7 +4,7 @@
 
 import json
 
-def UTF8DeepJsonEncoder(obj):
+def utf8_deep_json_encode(obj):
     """Convert all unicode to str in deep
     """
     # string -> unicode -> str
@@ -13,14 +13,14 @@ def UTF8DeepJsonEncoder(obj):
     # array -> list
     if isinstance(obj, list):
         for i in xrange(len(obj)):
-            obj[i] = UTF8DeepJsonEncoder(obj[i])
+            obj[i] = utf8_deep_json_encode(obj[i])
         return obj
     # object -> dict
     if isinstance(obj, dict):
         for k, v in obj.items():
-            v = UTF8DeepJsonEncoder(v)
+            v = utf8_deep_json_encode(v)
             del obj[k]
-            obj[UTF8DeepJsonEncoder(k)] = v
+            obj[utf8_deep_json_encode(k)] = v
         return obj
     # number (int) -> int, long
     # true -> True
@@ -28,7 +28,10 @@ def UTF8DeepJsonEncoder(obj):
     # null -> None
     return obj
 
-j = json.loads('{"a":"b","c":[]}')
+def json_loads(s):
+    return utf8_deep_json_encoder(json.loads(s))
 
-print(UTF8DeepJsonEncoder(j))
-print(j)
+j = '{"a":"b","c":[]}'
+
+print(json.loads(j))
+print(json_loads(j))
